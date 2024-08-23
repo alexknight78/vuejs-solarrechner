@@ -5,19 +5,23 @@ const dataOfWr = ref({
   wrId: null,
   wrName: '',
   wrNameShort: '',
-  wrU: null,
+  wrMinU: null,
+  wrMaxU: null,
   wrI: null,
   wrP: null,
   wrMppts: null,
+  wrInUse: false,
   mppts: []
 })
 
 const dataOfPv = ref({
   pvId: null,
   pvName: '',
+  pvWp: null,
+  pvVmp: null,
+  pvImp: null,
   pvVoc: null,
   pvIk: null,
-  pvWp: null,
   pvInUse: false
   // pvMpptId: null
 })
@@ -36,7 +40,8 @@ const btnSave = computed(() => {
   return (
     dataOfWr.value.wrName !== '' &&
     dataOfWr.value.wrNameShort !== '' &&
-    dataOfWr.value.wrU > 0 &&
+    dataOfWr.value.wrMinU > 0 &&
+    dataOfWr.value.wrMaxU > 0 &&
     dataOfWr.value.wrI > 0 &&
     dataOfWr.value.wrP > 0 &&
     dataOfWr.value.wrMppts > 0
@@ -46,9 +51,19 @@ const btnSave = computed(() => {
 const btnSavePv = computed(() => {
   return (
     dataOfPv.value.pvName !== '' &&
+    dataOfPv.value.pvWp > 0 &&
+    dataOfPv.value.pvVmp > 0 &&
+    dataOfPv.value.pvImp > 0 &&
     dataOfPv.value.pvVoc > 0 &&
-    dataOfPv.value.pvIk > 0 &&
-    dataOfPv.value.pvWp > 0
+    dataOfPv.value.pvIk > 0
+  )
+})
+
+const btnSaveWrPv = computed(() => {
+  console.log(dataOfWrPv.value.dataPv)
+  return (
+    Object.keys(dataOfWrPv.value.dataWr).length === 0 ||
+    Object.keys(dataOfWrPv.value.dataPv).length === 0
   )
 })
 
@@ -64,16 +79,20 @@ const countOfPvs = computed(() => {
   return dataOfPvs.value.length
 })
 
-// all mppts
+// select all mppts
 const allMpptsOfWrs = computed(() =>
   dataOfWrs.value.flatMap((wr) => {
     return wr.mppts.map((mppt) => {
-      return { wrId: wr.wrId, wrName: wr.wrName, wrNameShort: wr.wrNameShort, ...mppt }
+      return {
+        wrId: wr.wrId,
+        wrName: wr.wrName,
+        wrNameShort: wr.wrNameShort,
+        ...mppt
+        // pvCount: mppt.pv.length
+      }
     })
   })
 )
-
-// all pvs
 
 function saveWr() {
   console.log('save wr', dataOfWr.value)
@@ -83,9 +102,11 @@ function saveWr() {
     wrId: setWrId,
     mppts: Array.from({ length: dataOfWr.value.wrMppts }, () => ({
       mpptId: parseFloat(`${setWrId}${Math.floor(Math.random() * 100)}`),
-      mpptU: dataOfWr.value.wrU,
+      mpptMinU: dataOfPv.value.wrMinU,
+      mpptMaxU: dataOfWr.value.wrMaxU,
       mpptI: dataOfWr.value.wrI,
-      mpptP: dataOfWr.value.wrP
+      mpptP: dataOfWr.value.wrP,
+      pvs: []
     }))
   }
   dataOfWrs.value.push(objDataWr)
@@ -97,9 +118,9 @@ function saveWr() {
 }
 
 function updateWr() {
-  console.log('update wr', dataOfWr.value)
-  console.log('wrMppts', dataOfWr.value.wrMppts)
-  console.log('mppts', dataOfWr.value.mppts.length)
+  // console.log('update wr', dataOfWr.value)
+  // console.log('wrMppts', dataOfWr.value.wrMppts)
+  // console.log('mppts', dataOfWr.value.mppts.length)
 
   const valMppts = dataOfWr.value.wrMppts
   const arrMppts = dataOfWr.value.mppts.length
@@ -107,9 +128,11 @@ function updateWr() {
   let oldMppts = dataOfWr.value.mppts.map((mppt) => {
     return {
       mpptId: mppt.mpptId,
-      mpptU: dataOfWr.value.wrU,
+      mpptMinU: dataOfWr.value.wrMinU,
+      mpptMaxU: dataOfWr.value.wrMaxU,
       mpptI: dataOfWr.value.wrI,
-      mpptP: dataOfWr.value.wrP
+      mpptP: dataOfWr.value.wrP,
+      pvs: mppt.pvs
     }
   })
 
@@ -120,32 +143,25 @@ function updateWr() {
   if (valMppts > arrMppts) {
     newMppts = Array.from({ length: valMppts - arrMppts }, () => ({
       mpptId: parseFloat(`${dataOfWr.value.wrId}${Math.floor(Math.random() * 100)}`),
-      mpptU: dataOfWr.value.wrU,
+      mpptMinU: dataOfWr.value.wrMinU,
+      mpptMaxU: dataOfWr.value.wrMaxU,
       mpptI: dataOfWr.value.wrI,
-      mpptP: dataOfWr.value.wrP
+      mpptP: dataOfWr.value.wrP,
+      pvs: []
     }))
 
     setMppts = oldMppts.concat(newMppts)
   } else if (valMppts < arrMppts) {
-    // console.log('old slice before', oldMppts)
     setMppts = oldMppts.slice(0, valMppts)
-    // console.log('old slice after', setMppts)
-    // console.log('letzten weg')
   } else {
     setMppts = oldMppts
   }
-
-  // console.log('new Mppts', newMppts)
-  // console.log('old Mppts', oldMppts)
-  // console.log('set Mppts', setMppts)
 
   const dataUpdateIndex = dataOfWrs.value.findIndex((obj) => obj.wrId === dataOfWr.value.wrId)
   const objDataWr = {
     ...dataOfWr.value,
     mppts: setMppts
   }
-
-  // console.log(objDataWr)
 
   dataOfWrs.value[dataUpdateIndex] = objDataWr
 
@@ -170,6 +186,7 @@ function copyWr(copyDataWr) {
   const objDataWr = {
     ...copyDataWr,
     wrId: newWrId,
+    wrInUse: false,
     mppts: copyDataWr.mppts.map((mppt) => {
       return {
         ...mppt,
@@ -184,12 +201,19 @@ function copyWr(copyDataWr) {
 
 function delWr(delWrId) {
   console.log('delete')
-  const index = dataOfWrsPvs.value.findIndex((obj) => obj.wrId === delWrId)
-  console.log(index)
-  // const dataDeleteIndex = dataOfWrs.value.findIndex((obj) => obj.wrId === delWrId)
-  // dataOfWrs.value.splice(dataDeleteIndex, 1)
 
-  // saveDataInLocalStore('dataOfWrs', dataOfWrs.value)
+  const dataDeleteIndex = dataOfWrs.value.findIndex((obj) => obj.wrId === delWrId)
+  dataOfWrs.value.splice(dataDeleteIndex, 1)
+  saveDataInLocalStore('dataOfWrs', dataOfWrs.value)
+
+  // löschen aus WR+PV Liste
+  for (let i = dataOfWrsPvs.value.length - 1; i >= 0; i--) {
+    if (dataOfWrsPvs.value[i].wrId === delWrId) {
+      dataOfWrsPvs.value.splice(i, 1) // Löscht das Element an Index i
+    }
+  }
+  // const index = dataOfWrsPvs.value.findIndex((obj) => obj.wrId === delWrId)
+  // console.log(index)
 }
 
 function clearDataOfWr() {
@@ -197,7 +221,8 @@ function clearDataOfWr() {
   dataOfWr.value.wrId = null
   dataOfWr.value.wrName = ''
   dataOfWr.value.wrNameShort = ''
-  dataOfWr.value.wrU = ''
+  dataOfWr.value.wrMinU = ''
+  dataOfWr.value.wrMaxU = ''
   dataOfWr.value.wrI = ''
   dataOfWr.value.wrP = ''
   dataOfWr.value.wrMppts = ''
@@ -207,10 +232,11 @@ function clearDataOfPv() {
   console.log('clear pv form')
   dataOfPv.value.pvId = null
   dataOfPv.value.pvName = ''
+  dataOfPv.value.pvWp = null
+  dataOfPv.value.pvVmp = null
+  dataOfPv.value.pvImp = null
   dataOfPv.value.pvVoc = null
   dataOfPv.value.pvIk = null
-  dataOfPv.value.pvWp = null
-  // dataOfPv.value.pvMpptId = null
 }
 
 function clearDataOfWrPv() {
@@ -220,6 +246,7 @@ function clearDataOfWrPv() {
   dataOfWrPv.value.dataPv = {}
 }
 
+// PV is complete
 function savePv() {
   console.log('save pv', dataOfPv.value)
   const objDataPv = {
@@ -231,41 +258,24 @@ function savePv() {
   saveDataInLocalStore('dataOfPvs', dataOfPvs.value)
 }
 
-function editPv(editDataPv) {
+function getPv(editDataPv) {
   console.log('edit pv data', editDataPv)
   dataOfPv.value = {
     ...editDataPv
   }
-
-  // saveDataInLocalStore('dataOfWrs', dataOfWrs.value)
   showFormPv.value = true
 }
 
-function updatePv(pvId) {
+function updatePv() {
   console.log('update pv', dataOfPv.value)
 
-  let dataUpdateIndex
-  let objDataPv
-
-  if (pvId !== null) {
-    console.log('nur in Use')
-    dataUpdateIndex = dataOfPvs.value.findIndex((obj) => obj.pvId === pvId)
-
-    objDataPv = {
-      ...dataOfPvs.value[dataUpdateIndex],
-      pvInUse: true
-    }
-  } else {
-    dataUpdateIndex = dataOfPvs.value.findIndex((obj) => obj.pvId === dataOfPv.value.pvId)
-    objDataPv = {
-      ...dataOfPv.value
-    }
+  const dataUpdateIndex = dataOfPvs.value.findIndex((obj) => obj.pvId === dataOfPv.value.pvId)
+  const objDataPv = {
+    ...dataOfPv.value
   }
 
   dataOfPvs.value[dataUpdateIndex] = objDataPv
-
   saveDataInLocalStore('dataOfPvs', dataOfPvs.value)
-
   clearDataOfPv()
   showFormPv.value = false
 }
@@ -283,38 +293,323 @@ function copyPv(copyDataPv) {
   saveDataInLocalStore('dataOfPvs', dataOfPvs.value)
 }
 
-function delPv(delPvId) {
-  console.log('delete pv id', delPvId)
+function delPv(pvId) {
+  console.log('delete pv id', pvId)
 
-  const dataDeleteIndex = dataOfPvs.value.findIndex((obj) => obj.pvId === delPvId)
+  const dataDeleteIndex = dataOfPvs.value.findIndex((obj) => obj.pvId === pvId)
   dataOfPvs.value.splice(dataDeleteIndex, 1)
   saveDataInLocalStore('dataOfPvs', dataOfPvs.value)
 
-  const dataDeleteWrsPvsIndex = dataOfWrsPvs.value.findIndex((obj) => obj.pvId === delPvId)
-  dataOfWrsPvs.value.splice(dataDeleteWrsPvsIndex, 1)
-  saveDataInLocalStore('dataOfWrsPvs', dataOfWrsPvs.value)
+  // const dataDeleteWrsPvsIndex = dataOfWrsPvs.value.findIndex((obj) => obj.pvId === pvId)
+  // dataOfWrsPvs.value.splice(dataDeleteWrsPvsIndex, 1)
+  // saveDataInLocalStore('dataOfWrsPvs', dataOfWrsPvs.value)
   //
 }
 
 // MPPT + PV
 function saveWrPv() {
   console.log('save wr+pv', dataOfWrPv)
+
+  // Verknüpfung
   const objDataWrPv = {
-    // ...dataOfWrPv.value,
     id: new Date().getTime(),
     wrId: dataOfWrPv.value.dataWr.wrId,
     mpptId: dataOfWrPv.value.dataWr.mpptId,
     pvId: dataOfWrPv.value.dataPv.pvId
   }
-
-  // console.log(objDataWrPv)
   dataOfWrsPvs.value.push(objDataWrPv)
 
-  updatePv(dataOfWrPv.value.dataPv.pvId)
+  setInUse('pv', dataOfWrPv.value.dataPv.pvId, true)
+  setInUse('wr', dataOfWrPv.value.dataWr.wrId, true)
 
   clearDataOfWrPv()
-
   saveDataInLocalStore('dataOfWrsPvs', dataOfWrsPvs.value)
+}
+
+function delWrPv(id) {
+  const dataDeleteIndex = dataOfWrsPvs.value.findIndex((obj) => obj.id === id)
+  const deletedItem = dataOfWrsPvs.value.splice(dataDeleteIndex, 1)[0]
+
+  // Überprüfen, ob der WR noch andere PV-Anlagen hat
+  const wrHasPv = dataOfWrsPvs.value.some((obj) => obj.wrId === deletedItem.wrId)
+
+  if (!wrHasPv) {
+    // Wenn keine PVs mehr vorhanden sind, setze den WR-Status auf false
+    const wrToUpdate = dataOfWrs.value.find((wr) => wr.wrId === deletedItem.wrId)
+    if (wrToUpdate) {
+      // wrToUpdate.wrInUse = false
+      setInUse('wr', wrToUpdate.wrId, false)
+    }
+  }
+
+  // PV-Status auf false setzen, wenn die PVId gefunden wird
+  if (deletedItem) {
+    setInUse('pv', deletedItem.pvId, false)
+  }
+
+  if (dataOfWrsPvs.value.length > 0) {
+    saveDataInLocalStore('dataOfWrsPvs', dataOfWrsPvs.value)
+  } else {
+    clearDataInLocalStore('dataOfWrsPvs')
+  }
+}
+
+//
+const dataCalculator = computed(() => {
+  // console.log(dataOfWrPv.value.dataPv)
+  const mpptDataCopy =
+    dataOfWrsPvs.value.length > 0 ? JSON.parse(JSON.stringify(dataOfWrs.value)) : []
+
+  dataOfWrsPvs.value.forEach((item) => {
+    // Finde das passende MPPT-Objekt in der Kopie
+    const mppt = mpptDataCopy
+      .find((wr) => wr.wrId === item.wrId)
+      .mppts.find((mppt) => mppt.mpptId === item.mpptId)
+
+    // Finde die passende PV-Daten
+    const pv = dataOfPvs.value.find((pv) => pv.pvId === item.pvId)
+
+    // Füge die PV-Daten zu dem MPPT in der Kopie hinzu
+    if (mppt && pv) {
+      mppt.pvs.push(pv)
+    }
+  })
+
+  mpptDataCopy.forEach((wr) => {
+    wr.mppts.forEach((mppt) => {
+      const groupedModules = groupByVoc(mppt.pvs)
+
+      const { possibleStrings, notPossibleModules } = calculateMaxStringsForAllGroups(
+        groupedModules,
+        mppt
+      )
+
+      mppt.result = {
+        possibleStrings,
+        notPossibleModules
+      }
+    })
+  })
+
+  return mpptDataCopy.filter((item) => item.mppts.some((mppt) => mppt.pvs.length > 0))
+})
+
+//chatGPT
+// 1. Gruppiere alle Module die beim MPPT angelegt sind nach deren VOC
+function groupByVoc(modules) {
+  return modules.reduce((acc, module) => {
+    const vocKey = module.pvVoc.toString()
+    if (!acc[vocKey]) {
+      acc[vocKey] = []
+    }
+    acc[vocKey].push(module)
+    return acc
+  }, {})
+}
+
+function calculateMaxStringsForAllGroups(groupedModules, mppt) {
+  const possibleStrings = []
+  const notPossibleModules = []
+
+  for (const vocKey in groupedModules) {
+    const modules = groupedModules[vocKey]
+    const moduleVoc = parseFloat(vocKey)
+
+    // Überprüfen, ob die Voc des Moduls außerhalb des MPPT-Bereichs liegt
+    if (moduleVoc > mppt.mpptMaxU || moduleVoc < mppt.mpptMinU) {
+      notPossibleModules.push(...modules)
+      continue
+    }
+
+    const maxModulesInString = Math.floor((mppt.mpptMaxU * 0.9) / moduleVoc)
+
+    if (modules.length === 0) continue
+
+    // Berechne die Anzahl der Module für den primären String
+    let primaryModulesCount = Math.min(maxModulesInString, modules.length)
+    let remainingModulesCount = modules.length - primaryModulesCount
+
+    // Prüfen, ob es sinnvoll ist, die Module gleichmäßig aufzuteilen
+    if (remainingModulesCount > 0 && remainingModulesCount < primaryModulesCount) {
+      // Teile die Module gleichmäßig auf beide Strings auf
+      primaryModulesCount = Math.floor(modules.length / 2)
+      remainingModulesCount = modules.length - primaryModulesCount
+    }
+
+    const primaryModules = modules.slice(0, primaryModulesCount)
+    const remainingModules = modules.slice(primaryModulesCount)
+
+    let primaryString = null
+    if (primaryModules.length > 0) {
+      primaryString = {
+        numberOfModules: primaryModulesCount,
+        totalVoc: (moduleVoc * primaryModulesCount).toFixed(2),
+        totalVmp: primaryModules[0].pvVmp * primaryModulesCount,
+        totalImp: primaryModules[0].pvImp,
+        totalPower: primaryModules[0].pvWp * primaryModulesCount,
+        modules: primaryModules
+      }
+    }
+
+    let secondaryString = null
+    if (remainingModules.length > 0) {
+      const secondaryModulesCount = Math.min(maxModulesInString, remainingModules.length)
+      const secondaryModules = remainingModules.slice(0, secondaryModulesCount)
+
+      secondaryString = {
+        numberOfModules: secondaryModulesCount,
+        totalVoc: (moduleVoc * secondaryModulesCount).toFixed(2),
+        totalVmp: secondaryModules[0].pvVmp * secondaryModulesCount,
+        totalImp: secondaryModules[0].pvImp,
+        totalPower: secondaryModules[0].pvWp * secondaryModulesCount,
+        modules: secondaryModules
+      }
+    }
+
+    // Prüfe, ob die Strings die gleichen Werte haben, aber nur wenn beide existieren
+    let isSame = false
+    if (primaryString && secondaryString) {
+      isSame =
+        primaryString.numberOfModules === secondaryString.numberOfModules &&
+        primaryString.totalVoc === secondaryString.totalVoc &&
+        primaryString.totalVmp === secondaryString.totalVmp &&
+        primaryString.totalImp === secondaryString.totalImp &&
+        primaryString.totalPower === secondaryString.totalPower
+    }
+
+    // Füge das Ergebnis der möglichen Strings hinzu, nur wenn primaryString existiert
+    if (primaryString) {
+      possibleStrings.push({
+        voc: moduleVoc,
+        primaryString: primaryString,
+        secondaryString: secondaryString,
+        isSame: isSame
+      })
+    }
+  }
+
+  return { possibleStrings, notPossibleModules }
+}
+
+// function calculateMaxStringsForAllGroups(groupedModules, mppt) {
+//   const possibleStrings = []
+//   const notPossibleModules = []
+
+//   for (const vocKey in groupedModules) {
+//     const modules = groupedModules[vocKey]
+//     const moduleVoc = parseFloat(vocKey)
+
+//     // Überprüfen, ob die Voc des Moduls außerhalb des MPPT-Bereichs liegt
+//     if (moduleVoc > mppt.mpptMaxU || moduleVoc < mppt.mpptMinU) {
+//       notPossibleModules.push(...modules)
+//       continue
+//     }
+
+//     const maxModulesInString = Math.floor((mppt.mpptMaxU * 0.9) / moduleVoc)
+
+//     if (modules.length === 0) continue
+
+//     // Berechne den primären String
+//     const primaryModulesCount = Math.min(maxModulesInString, modules.length)
+//     const primaryModules = modules.slice(0, primaryModulesCount)
+
+//     let primaryString = null
+//     if (primaryModules.length > 0) {
+//       primaryString = {
+//         numberOfModules: primaryModulesCount,
+//         totalVoc: moduleVoc * primaryModulesCount,
+//         totalVmp: primaryModules[0].pvVmp * primaryModulesCount,
+//         totalImp: primaryModules[0].pvImp,
+//         totalPower: primaryModules[0].pvWp * primaryModulesCount,
+//         modules: primaryModules
+//       }
+//     }
+
+//     // Berechne den sekundären String
+//     const remainingModules = modules.slice(primaryModulesCount)
+//     const secondaryModulesCount = Math.min(maxModulesInString, remainingModules.length)
+//     const secondaryModules = remainingModules.slice(0, secondaryModulesCount)
+
+//     let secondaryString = null
+//     if (secondaryModules.length > 0) {
+//       secondaryString = {
+//         numberOfModules: secondaryModulesCount,
+//         totalVoc: moduleVoc * secondaryModulesCount,
+//         totalVmp: secondaryModules[0].pvVmp * secondaryModulesCount,
+//         totalImp: secondaryModules[0].pvImp,
+//         totalPower: secondaryModules[0].pvWp * secondaryModulesCount,
+//         modules: secondaryModules
+//       }
+//     }
+
+//     // Prüfe, ob die Strings die gleichen Werte haben, aber nur wenn beide existieren
+//     let isSame = false
+//     if (primaryString && secondaryString) {
+//       isSame =
+//         primaryString.numberOfModules === secondaryString.numberOfModules &&
+//         primaryString.totalVoc === secondaryString.totalVoc &&
+//         primaryString.totalVmp === secondaryString.totalVmp &&
+//         primaryString.totalImp === secondaryString.totalImp &&
+//         primaryString.totalPower === secondaryString.totalPower
+//     }
+
+//     // Füge das Ergebnis der möglichen Strings hinzu, nur wenn primaryString existiert
+//     if (primaryString) {
+//       possibleStrings.push({
+//         voc: moduleVoc,
+//         primaryString: primaryString,
+//         secondaryString: secondaryString,
+//         isSame: isSame
+//       })
+//     }
+//   }
+
+//   return { possibleStrings, notPossibleModules }
+// }
+
+// allgemein
+function setInUse(key, id, status) {
+  let dataUpdateIndex
+  let objData
+  switch (key) {
+    case 'pv':
+      dataUpdateIndex = dataOfPvs.value.findIndex((obj) => obj.pvId === id)
+
+      objData = {
+        ...dataOfPvs.value[dataUpdateIndex],
+        pvInUse: status
+      }
+      dataOfPvs.value[dataUpdateIndex] = objData
+      saveDataInLocalStore('dataOfPvs', dataOfPvs.value)
+      break
+    case 'wr':
+      dataUpdateIndex = dataOfWrs.value.findIndex((obj) => obj.wrId === id)
+
+      objData = {
+        ...dataOfWrs.value[dataUpdateIndex],
+        wrInUse: status
+      }
+      dataOfWrs.value[dataUpdateIndex] = objData
+      saveDataInLocalStore('dataOfWrs', dataOfWrs.value)
+      break
+  }
+  return {
+    ...key,
+    ...id
+  }
+}
+
+const sortUpDown = ref(true)
+function sortData(datakey, key) {
+  console.log(datakey, key, sortUpDown.value)
+  switch (datakey) {
+    case 'dataOfPvs':
+      dataOfPvs.value.sort((a, b) =>
+        sortUpDown.value ? a[key].localeCompare(b[key]) : b[key].localeCompare(a[key])
+      )
+  }
+
+  sortUpDown.value = !sortUpDown.value
 }
 
 function saveDataInLocalStore(key, data) {
@@ -322,11 +617,27 @@ function saveDataInLocalStore(key, data) {
   localStorage.setItem(key, JSON.stringify(data))
 }
 
-function clearDataInLocalStore() {
-  localStorage.clear()
-  dataOfWrs.value = []
-  dataOfPvs.value = []
-  dataOfWrsPvs.value = []
+function clearDataInLocalStore(key = '') {
+  switch (key) {
+    case 'dataOfWrs':
+      dataOfWrs.value = []
+      localStorage.removeItem(key)
+      break
+    case 'dataOfPvs':
+      dataOfPvs.value = []
+      localStorage.removeItem(key)
+      break
+    case 'dataOfWrsPvs':
+      dataOfWrsPvs.value = []
+      localStorage.removeItem(key)
+      break
+
+    default:
+      dataOfWrs.value = []
+      dataOfPvs.value = []
+      dataOfWrsPvs.value = []
+      localStorage.clear()
+  }
 }
 
 onMounted(() => {
@@ -338,20 +649,26 @@ onMounted(() => {
   const storedDataOfPv = localStorage.getItem('dataOfPvs')
   if (storedDataOfPv) {
     dataOfPvs.value = JSON.parse(storedDataOfPv)
+    //sortData('dataOfPvs', 'pvName')
   }
 
   const storedDataOfWrsPvs = localStorage.getItem('dataOfWrsPvs')
   if (storedDataOfWrsPvs) {
     dataOfWrsPvs.value = JSON.parse(storedDataOfWrsPvs)
+  } else {
+    dataOfWrs.value.forEach((wr) => {
+      wr.wrInUse = false
+    })
+
+    dataOfPvs.value.forEach((pv) => {
+      pv.pvInUse = false
+    })
+    // console.log(dataOfPvs.value)
   }
 })
 </script>
 <template>
   <div class="container">
-    {{ dataOfWrs }}
-    <hr />
-    {{ dataOfPvs }}
-    <hr />
     <div class="row">
       <div class="col-12">
         <button
@@ -376,20 +693,21 @@ onMounted(() => {
             >
               <i :class="showForm ? 'bi-dash-lg' : 'bi-plus-lg'"></i>
             </button>
-            <h5 class="card-title">
+            <h4 class="card-title">
               <i class="bi-plug"></i> Wechselrichter
               {{ dataOfWr.wrId === null ? 'anlegen' : 'ändern' }}
-            </h5>
-            <h6 class="card-subtitle mb-2 text-body-secondary">
+            </h4>
+            <h5 class="card-subtitle mb-2 text-body-secondary">
               Hier kannst Du den Wechselrichter mit seinen Daten
               {{ dataOfWr.wrId === null ? 'anlegen' : 'ändern' }}. Du hast bereits
               {{ countOfWrs }} Wechselrichter angelegt.
-            </h6>
+            </h5>
           </div>
 
           <Transition>
             <div v-show="showForm" class="card-body">
               <input type="hidden" id="wrId" v-model="dataOfWr.wrId" />
+              <input type="checkbox" id="checkbox" v-model="dataOfWr.wrInUse" />
               <div class="row">
                 <div class="col-6">
                   <div class="input-group input-group-sm mb-3">
@@ -449,13 +767,28 @@ onMounted(() => {
 
                 <div class="col-12 col-md-6">
                   <div class="input-group input-group-sm mb-3">
+                    <span class="input-group-text">min. Eingangsspannung</span>
+                    <input
+                      type="number"
+                      class="form-control"
+                      id="wrMinU"
+                      placeholder="z.B. 10"
+                      v-model="dataOfWr.wrMinU"
+                      min="1"
+                    />
+                    <span class="input-group-text" style="width: 40px">V</span>
+                  </div>
+                </div>
+
+                <div class="col-12 col-md-6">
+                  <div class="input-group input-group-sm mb-3">
                     <span class="input-group-text">max. Eingangsspannung</span>
                     <input
                       type="number"
                       class="form-control"
-                      id="wrU"
+                      id="wrMaxU"
                       placeholder="z.B. 55"
-                      v-model="dataOfWr.wrU"
+                      v-model="dataOfWr.wrMaxU"
                       min="1"
                     />
                     <span class="input-group-text" style="width: 40px">V</span>
@@ -516,49 +849,57 @@ onMounted(() => {
                 <h6 class="card-title float-start pt-1">
                   {{ dataWr.wrName }} ({{ dataWr.wrNameShort }})
                 </h6>
-                <a
-                  title="Eintrag löschen"
-                  type="button"
-                  class="btn btn-outline-danger btn-sm float-end ms-1"
+                <button
+                  :class="`btn ${dataWr.wrInUse ? 'btn-secondary' : 'btn-danger'} btn-sm float-end`"
                   @click="delWr(dataWr.wrId)"
+                  v-bind:disabled="dataWr.wrInUse"
                 >
                   <i class="bi-trash bi-sm"></i>
-                </a>
-                <a
-                  href="#footer"
-                  title="Eintrag duplizieren"
+                </button>
+
+                <button
                   type="button"
-                  class="btn btn-outline-secondary btn-sm float-end ms-1"
-                  @click="copyWr(dataWr)"
-                >
-                  <i class="bi-copy"></i>
-                </a>
-                <a
-                  href="#formWr"
-                  title="Eintrag ändern"
-                  type="button"
-                  class="btn btn-outline-secondary btn-sm float-end"
+                  class="btn btn-warning btn-sm float-end ms-1 me-1"
                   @click="editWr(dataWr)"
                 >
                   <i class="bi-pencil"></i>
-                </a>
+                </button>
+
+                <button
+                  type="button"
+                  class="btn btn-success btn-sm float-end"
+                  @click="copyWr(dataWr)"
+                >
+                  <i class="bi-copy"></i>
+                </button>
               </div>
               <div class="card-body">
                 <div v-for="(dataWrMppt, index) in dataWr.mppts" :key="index">
                   <div class="card-title">MPPT {{ index + 1 }} (ID: {{ dataWrMppt.mpptId }})</div>
                   <div class="row">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                      <div class="input-group input-group-sm mb-3">
+                        <span class="input-group-text">min. Eing. U (V)</span>
+                        <input
+                          type="number"
+                          class="form-control"
+                          v-model="dataWrMppt.mpptMinU"
+                          disabled
+                        />
+                      </div>
+                    </div>
+                    <div class="col-md-3">
                       <div class="input-group input-group-sm mb-3">
                         <span class="input-group-text">max. Eing. U (V)</span>
                         <input
                           type="number"
                           class="form-control"
-                          v-model="dataWrMppt.mpptU"
+                          v-model="dataWrMppt.mpptMaxU"
                           disabled
                         />
                       </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                       <div class="input-group input-group-sm mb-3">
                         <span class="input-group-text">max. Eing. I (A)</span>
                         <input
@@ -569,7 +910,7 @@ onMounted(() => {
                         />
                       </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                       <div class="input-group input-group-sm mb-3">
                         <span class="input-group-text">Eing. P (W)</span>
                         <input
@@ -581,7 +922,6 @@ onMounted(() => {
                       </div>
                     </div>
                   </div>
-                  <!-- Solar {{ getPv() }} -->
                   <hr />
                 </div>
               </div>
@@ -600,56 +940,86 @@ onMounted(() => {
             >
               <i :class="showFormPv ? 'bi-dash-lg' : 'bi-plus-lg'"></i>
             </button>
-            <h5 class="card-title">
-              <i class="bi-grid-3x2"></i> Solarmodule
+            <h4 class="card-title">
+              <i class="bi-grid"></i> Solarmodule
               {{ dataOfPv.pvId === null ? 'anlegen' : 'ändern' }}
-            </h5>
-            <h6 class="card-subtitle mb-2 text-body-secondary">
+            </h4>
+            <h5 class="card-subtitle mb-2 text-body-secondary">
               Hier kannst Du die Solarmodule mit ihren Daten
               {{ dataOfPv.pvId === null ? 'anlegen' : 'ändern' }}. Du hast bereits
               {{ countOfPvs }} Solarpanele angelegt.
-            </h6>
+            </h5>
           </div>
           <Transition>
             <div v-show="showFormPv" class="card-body">
               <input type="hidden" id="pvId" v-model="dataOfPv.pvId" />
               <div class="row">
-                <div class="col-12 col-md-6 col-xl-12">
+                <div class="col-12">
                   <div class="input-group input-group-sm mb-3">
                     <span class="input-group-text">Bezeichnung</span>
                     <input
                       type="text"
                       class="form-control"
                       id="pvName"
-                      placeholder="z.B. Ja Solar 415"
+                      placeholder="z.B. Ja Solar 405"
                       v-model="dataOfPv.pvName"
                     />
                   </div>
                 </div>
 
-                <div class="col-12 col-md-6">
+                <div class="col-12">
                   <div class="input-group input-group-sm mb-3">
-                    <span class="input-group-text">Leistung</span>
+                    <span class="input-group-text">max. Leistung (Pmax)</span>
                     <input
                       type="number"
                       class="form-control"
                       id="pvWp"
-                      placeholder="z.B. 415"
+                      placeholder="z.B. 405"
                       v-model="dataOfPv.pvWp"
                       min="1"
                     />
-                    <span class="input-group-text" style="width: 40px">Wp</span>
+                    <span class="input-group-text" style="width: 40px">Watt</span>
                   </div>
                 </div>
 
-                <div class="col-12 col-md-6">
+                <div class="col-12">
+                  <div class="input-group input-group-sm mb-3">
+                    <span class="input-group-text">max. Spannung (Vmp)</span>
+                    <input
+                      type="number"
+                      class="form-control"
+                      id="pvVmp"
+                      placeholder="z.B. 31.21"
+                      v-model="dataOfPv.pvVmp"
+                      min="1"
+                    />
+                    <span class="input-group-text" style="width: 40px">V</span>
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <div class="input-group input-group-sm mb-3">
+                    <span class="input-group-text">max. Strom (Imp)</span>
+                    <input
+                      type="number"
+                      class="form-control"
+                      id="pvVmp"
+                      placeholder="z.B. 12.98"
+                      v-model="dataOfPv.pvImp"
+                      min="1"
+                    />
+                    <span class="input-group-text" style="width: 40px">A</span>
+                  </div>
+                </div>
+
+                <div class="col-12">
                   <div class="input-group input-group-sm mb-3">
                     <span class="input-group-text">Leerlaufspannung (Voc / Uoc)</span>
                     <input
                       type="number"
                       class="form-control"
                       id="pvVoc"
-                      placeholder="z.B. 37.1"
+                      placeholder="z.B. 37.23"
                       v-model="dataOfPv.pvVoc"
                       min="1"
                     />
@@ -657,36 +1027,21 @@ onMounted(() => {
                   </div>
                 </div>
 
-                <div class="col-12 col-md-6">
+                <div class="col-12">
                   <div class="input-group input-group-sm mb-3">
-                    <span class="input-group-text">Kurzschlussstrom (IK / ISC)</span>
+                    <span class="input-group-text">Kurzschlussstrom (ISC / IK)</span>
                     <input
                       type="number"
                       class="form-control"
                       id="pvIk"
-                      placeholder="z.B. 13.1"
+                      placeholder="z.B. 13.87"
                       v-model="dataOfPv.pvIk"
                       min="1"
                     />
                     <span class="input-group-text" style="width: 40px">A</span>
                   </div>
                 </div>
-
-                <!-- <div class="col-12 col-md-6">
-                  <div class="input-group input-group-sm mb-3">
-                    <label class="input-group-text" for="wrMpptId">MPPT</label>
-                    <select class="form-select" id="wrMpptId">
-                      <option
-                        v-for="(mppt, index) in allMpptsOfWrs"
-                        :key="index"
-                        :value="mppt.mpptId"
-                      >
-                        {{ mppt.wrName }} ({{ mppt.mpptU }} V, {{ mppt.mpptI }} A,
-                        {{ mppt.mpptP }} Watt)
-                      </option>
-                    </select>
-                  </div>
-                </div> -->
+                <input type="checkbox" id="checkbox" v-model="dataOfPv.pvInUse" />
               </div>
 
               <button
@@ -702,7 +1057,7 @@ onMounted(() => {
                 v-else
                 type="button"
                 class="btn btn-outline-secondary btn-sm float-end"
-                @click="updatePv(null)"
+                @click="updatePv"
                 v-bind:disabled="!btnSavePv"
               >
                 <i class="bi-pencil"></i> ÄNDERN
@@ -720,59 +1075,78 @@ onMounted(() => {
           <!-- Ausgabe PV -->
           <div class="card m-3">
             <div class="card-body">
-              <h6 class="card-title"><i class="bi-grid-3x2"></i> Solarmodule</h6>
-              <table class="table text-center">
-                <thead>
-                  <tr>
-                    <th scope="col">#</th>
-                    <th scope="col">Bezeichnung</th>
-                    <th scope="col">Voc / Uoc</th>
-                    <th scope="col">IK / ISC</th>
-                    <th scope="col">Leistung</th>
-                    <th scope="col"><i class="bi bi-hdd-network"></i> WR</th>
-                    <th scope="col"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(dataPv, index) in dataOfPvs" :key="dataPv.pvId">
-                    <th scope="row">{{ index + 1 }}</th>
-                    <td>{{ dataPv.pvName }}</td>
-                    <td>{{ dataPv.pvVoc }} V</td>
-                    <td>{{ dataPv.pvIk }} A</td>
-                    <td>{{ dataPv.pvWp }} Wp</td>
-                    <td><i :class="`bi bi-${dataPv.pvInUse ? 'check-lg' : 'x-lg'}`"></i></td>
-                    <td>
-                      <a
-                        href="#formPv"
-                        title="Eintrag löschen"
-                        type="button"
-                        class="btn btn-outline-danger btn-sm float-end ms-1"
-                        @click="delPv(dataPv.pvId)"
-                      >
-                        <i class="bi-trash bi-sm"></i>
-                      </a>
-                      <a
-                        href="#footer"
-                        title="Eintrag duplizieren"
-                        type="button"
-                        class="btn btn-outline-secondary btn-sm float-end ms-1"
-                        @click="copyPv(dataPv)"
-                      >
-                        <i class="bi-copy"></i>
-                      </a>
-                      <a
-                        href="#formPv"
-                        title="Eintrag ändern"
-                        type="button"
-                        class="btn btn-outline-secondary btn-sm float-end"
-                        @click="editPv(dataPv)"
-                      >
-                        <i class="bi-pencil"></i>
-                      </a>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <h6 class="card-title"><i class="bi-grid"></i> Solarmodule</h6>
+              <div class="table-responsive">
+                <table class="table text-center">
+                  <thead>
+                    <tr>
+                      <th scope="col">#</th>
+                      <th scope="col">
+                        Bezeichnung
+
+                        <i
+                          class="bi bi-arrow-down-up iClick"
+                          @click="sortData('dataOfPvs', 'pvName')"
+                        ></i>
+                      </th>
+
+                      <th scope="col">max. Wp</th>
+                      <th scope="col">max. Vmp</th>
+                      <th scope="col">max. Imp</th>
+                      <th scope="col">Voc / Uoc</th>
+                      <th scope="col">IK / ISC</th>
+                      <th scope="col"><i class="bi bi-hdd-network"></i> WR</th>
+                      <th scope="col"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(dataPv, index) in dataOfPvs" :key="dataPv.pvId">
+                      <th scope="row">{{ index + 1 }}</th>
+                      <td>{{ dataPv.pvName }}</td>
+                      <td>{{ dataPv.pvWp }} Wp</td>
+                      <td>{{ dataPv.pvVmp }} V</td>
+                      <td>{{ dataPv.pvImp }} A</td>
+                      <td>{{ dataPv.pvVoc }} V</td>
+                      <td>{{ dataPv.pvIk }} A</td>
+                      <td>
+                        <button
+                          type="button"
+                          class="btn btn-outline-secondary btn-sm"
+                          v-bind:disabled="true"
+                          @click="setInUse('pv', dataPv.pvId, !dataPv.pvInUse)"
+                        >
+                          <i :class="`bi bi-${dataPv.pvInUse ? 'grid-fill' : 'grid'}`"></i>
+                        </button>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          class="btn btn-success btn-sm float-start me-1"
+                          @click="copyPv(dataPv)"
+                        >
+                          <i class="bi-copy"></i>
+                        </button>
+
+                        <button
+                          type="button"
+                          class="btn btn-warning btn-sm float me-1"
+                          @click="getPv(dataPv)"
+                        >
+                          <i class="bi-pencil"></i>
+                        </button>
+                        <button
+                          type="button"
+                          :class="`btn ${dataPv.pvInUse ? 'btn-secondary' : 'btn-danger'} btn-sm float-end`"
+                          @click="delPv(dataPv.pvId)"
+                          v-bind:disabled="dataPv.pvInUse"
+                        >
+                          <i class="bi-trash bi-sm"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
@@ -780,6 +1154,13 @@ onMounted(() => {
         <!-- WR und PV zusammenfügen -->
         <div id="formWrPv" class="card mb-3 shadow">
           <div class="card-header font-weight-bold">
+            <!-- <button
+              type="button"
+              class="btn btn-danger btn-sm float-end ms-1"
+              @click="clearDataInLocalStore('dataOfWrsPvs')"
+            >
+              <i :class="`bi bi-trash${dataOfWrsPvs.length > 0 ? '-fill' : ''}`"></i>
+            </button> -->
             <button
               id="showFormWrPv"
               type="button"
@@ -788,14 +1169,14 @@ onMounted(() => {
             >
               <i :class="showFormWrPv ? 'bi-dash-lg' : 'bi-plus-lg'"></i>
             </button>
-            <h5 class="card-title">
+            <h4 class="card-title">
               <i class="bi-lightning"></i> Verbindung Solarmodule und Wechselrichter
               {{ dataOfWrPv.id === null ? 'anlegen' : 'ändern' }}
-            </h5>
-            <h6 class="card-subtitle mb-2 text-body-secondary">
+            </h4>
+            <h5 class="card-subtitle mb-2 text-body-secondary">
               Hier kannst Du die Verbindung der Solarmodule mit dem Wechselrichter
               {{ dataOfWrPv.id === null ? 'anlegen' : 'ändern' }}.
-            </h6>
+            </h5>
           </div>
 
           <Transition>
@@ -810,7 +1191,8 @@ onMounted(() => {
                       WR
                       <select class="form-select form-select-sm" v-model="dataOfWrPv.dataWr">
                         <option v-for="(mppt, index) in allMpptsOfWrs" :key="index" :value="mppt">
-                          {{ mppt.wrNameShort }} - MPPT [{{ mppt.mpptU }} V, {{ mppt.mpptI }} A,
+                          {{ mppt.wrNameShort }} - MPPT ID: {{ mppt.mpptId }} - [min.
+                          {{ mppt.mpptMinU }} V, max. {{ mppt.mpptMaxU }} V, {{ mppt.mpptI }} A,
                           {{ mppt.mpptP }} Wp]
                         </option>
                       </select>
@@ -836,34 +1218,237 @@ onMounted(() => {
                   type="button"
                   class="btn btn-outline-secondary btn-sm float-end"
                   @click="saveWrPv"
+                  v-bind:disabled="btnSaveWrPv"
                 >
                   <i class="bi-floppy"></i> SPEICHERN
                 </button>
               </div>
             </div>
           </Transition>
-          <p>Eingabe</p>
-          {{ dataOfWrPv }}
-          <p>
-            WRs+PVs<br />
-            {{ dataOfWrsPvs }}
-          </p>
-          <!-- -->
 
-          <!-- -->
-          <p>
-            WR MPPTs<br />
-            {{ allMpptsOfWrs }}
-          </p>
+          <div class="card">
+            <div class="card-body">
+              Verbindungen
+              <div class="table-responsive">
+                <table class="table text-center">
+                  <thead>
+                    <tr>
+                      <th scope="col">#</th>
+                      <th scope="col">WR ID</th>
+                      <th scope="col">MPPT ID</th>
+                      <th scope="col">PV ID</th>
+                      <th scope="col"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="item in dataOfWrsPvs" :key="item.id">
+                      <td>{{ item.id }}</td>
+                      <td>{{ item.wrId }}</td>
+                      <td>{{ item.mpptId }}</td>
+                      <td>{{ item.pvId }}</td>
+                      <td>
+                        <button
+                          type="button"
+                          class="btn btn-danger btn-sm"
+                          @click="delWrPv(item.id)"
+                        >
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
 
-          <p>
-            PVs<br />
-            {{ dataOfPvs }}
-          </p>
+        <!-- Rechner -->
+        <div class="card shadow">
+          <div class="card-header font-weight-bold">
+            <h4 class="card-title"><i class="bi-plug"></i> Zusammenfassung</h4>
+            <h5 class="card-subtitle mb-2 text-body-secondary">
+              Hier siehst Du die Geräte / Wechselrichter, deren MPPTs und die Solarmodule und
+              Strings. Gruppen können nicht verbunden werden. Strings werden parallel verbunden.
+            </h5>
+          </div>
+          <div class="card-body" v-if="dataCalculator.length > 0">
+            <div class="row justify-content-center" v-for="wr in dataCalculator" :key="wr.wrId">
+              <div class="col-12">
+                <div class="card mb-3">
+                  <div class="card-header h5">{{ wr.wrName }}</div>
+                  <div class="card-body">
+                    <!-- {{ wr.wrMppts }} MPPTs [min. {{ wr.wrMinU }} V | max. {{ wr.wrMaxU }} V |
+                    {{ wr.wrI }} A | {{ wr.wrP }} W] -->
+                    <!-- </div>
+                </div>
+              </div> -->
+
+                    <!-- mppt -->
+                    <div class="row">
+                      <div :class="col - 12" v-for="(mppt, index) in wr.mppts" :key="mppt.mpptId">
+                        <div class="card mb-3">
+                          <div class="card-header h6">
+                            MPPT {{ index + 1 }} (ID: {{ mppt.mpptId }})
+                          </div>
+                          <div
+                            class="card-body"
+                            v-for="(possibleStringsAsGroup, index) in mppt.result.possibleStrings"
+                            :key="index"
+                          >
+                            <div class="row">
+                              <div class="col-12">
+                                {{ possibleStringsAsGroup.isSame }}
+                                <div class="card">
+                                  <div class="card-header">
+                                    Gruppe aller Module mit {{ possibleStringsAsGroup.voc }} Voc/Uoc
+                                  </div>
+                                  <div class="card-body">
+                                    <div class="row">
+                                      <div class="col-12">
+                                        <div
+                                          class="alert alert-warning d-flex align-items-center"
+                                          role="alert"
+                                        >
+                                          <i class="bi bi-info-square me-2"></i>
+                                          <div>
+                                            Sting 1 und 2 können (noch) nicht parallel verbunden
+                                            werden, da die Anzahl Module (Summe der Voc/Uoc) nicht
+                                            identisch sind.
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div class="row">
+                                      <div
+                                        :class="
+                                          possibleStringsAsGroup.primaryString !== null &&
+                                          possibleStringsAsGroup.secondaryString === null
+                                            ? 'col-12'
+                                            : 'col-12 col-md-6'
+                                        "
+                                      >
+                                        <div class="card">
+                                          <div class="card-header">
+                                            <i class="bi bi-grid me-2"></i>
+                                            <strong>String 1 (in Reihe)</strong><br />bestehend aus
+                                            {{
+                                              possibleStringsAsGroup.primaryString.numberOfModules
+                                            }}
+                                            Module(n),
+                                            {{ possibleStringsAsGroup.primaryString.totalVoc }}
+                                            Voc/Uoc,
+                                            {{ possibleStringsAsGroup.primaryString.totalPower }} Wp
+                                          </div>
+                                          <div class="card-body">
+                                            <ul
+                                              class="list-group"
+                                              v-if="possibleStringsAsGroup.primaryString !== null"
+                                            >
+                                              <li
+                                                class="list-group-item"
+                                                v-for="(modul, index) in possibleStringsAsGroup
+                                                  .primaryString.modules"
+                                                :key="index"
+                                              >
+                                                {{ modul.pvName }}, {{ modul.pvVoc }} Voc/Uoc,
+                                                {{ modul.pvWp }} Wp
+                                              </li>
+                                            </ul>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div
+                                        :class="
+                                          possibleStringsAsGroup.primaryString === null &&
+                                          possibleStringsAsGroup.secondaryString !== null
+                                            ? 'col-12'
+                                            : 'col-12 col-md-6'
+                                        "
+                                      >
+                                        <div
+                                          class="card"
+                                          v-if="possibleStringsAsGroup.secondaryString !== null"
+                                        >
+                                          <div class="card-header">
+                                            <i class="bi bi-grid me-2"></i>
+                                            <strong>String 2 (in Reihe)</strong><br />bestehend aus
+                                            {{
+                                              possibleStringsAsGroup.secondaryString.numberOfModules
+                                            }}
+                                            Module(n),
+                                            {{ possibleStringsAsGroup.secondaryString.totalVoc }}
+                                            Voc/Uoc,
+                                            {{ possibleStringsAsGroup.secondaryString.totalPower }}
+                                            Wp
+                                          </div>
+                                          <div class="card-body">
+                                            <ul
+                                              class="list-group"
+                                              v-if="possibleStringsAsGroup.secondaryString !== null"
+                                            >
+                                              <li
+                                                class="list-group-item"
+                                                v-for="(modul, index) in possibleStringsAsGroup
+                                                  .secondaryString.modules"
+                                                :key="index"
+                                              >
+                                                {{ modul.pvName }}, {{ modul.pvVoc }} Voc/Uoc,
+                                                {{ modul.pvWp }} Wp
+                                              </li>
+                                            </ul>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <!-- nicht passende module -->
+                          <div class="card-body">
+                            <ul
+                              class="list-group"
+                              v-for="(modul, index) in mppt.result.notPossibleModules"
+                              :key="index"
+                            >
+                              <li class="list-group-item list-group-item-danger">
+                                Module die nicht verwendet werden können
+                              </li>
+                              <li class="list-group-item">
+                                {{ modul.pvName }}
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card-body" v-else>
+            Es sind keine Wechselrichter und dessen MPPTs mit Modulen verbunden.
+          </div>
         </div>
       </div>
     </div>
     <div id="footer"></div>
+    <!-- DATA WR<br />
+    <pre>{{ dataOfWrs }}</pre>
+    <hr />
+    DATA PV<br />
+    <pre>{{ dataOfPvs }}</pre>
+    <hr />
+    Data WR + PV<br />
+    <pre>{{ dataOfWrsPvs }}</pre>
+    <hr /> 
+    Data Calc
+    <pre>{{ dataCalculator }}</pre>
+    -->
   </div>
 </template>
 
@@ -877,4 +1462,24 @@ onMounted(() => {
 .v-leave-to {
   opacity: 0;
 }
+
+.iClick:hover {
+  cursor: pointer;
+}
+
+.progress,
+.progress-bar,
+.progress-stacked {
+  height: 30px;
+}
+.bg-success-300 {
+  background-color: #75b798;
+}
+/* 
+.list-group-item.active {
+    z-index: 2;
+    color: var(--bs-list-group-active-color);
+    background-color: var(--bs-list-group-active-bg);
+    border-color: var(--bs-list-group-active-border-color);
+} */
 </style>
