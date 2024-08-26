@@ -218,6 +218,7 @@ function delWr(delWrId) {
 
 function clearDataOfWr() {
   console.log('clear wr form')
+  dataOfWr.value.wrInUse = false
   dataOfWr.value.wrId = null
   dataOfWr.value.wrName = ''
   dataOfWr.value.wrNameShort = ''
@@ -371,7 +372,9 @@ const dataCalculator = computed(() => {
 
     // Füge die PV-Daten zu dem MPPT in der Kopie hinzu
     if (mppt && pv) {
-      mppt.pvs.push(pv)
+      const extendedPv = { ...pv, idWrsPvs: item.id }
+      mppt.pvs.push(extendedPv)
+      // mppt.pvs.push(pv)
     }
   })
 
@@ -379,14 +382,15 @@ const dataCalculator = computed(() => {
     wr.mppts.forEach((mppt) => {
       const groupedModules = groupByVoc(mppt.pvs)
 
-      const { possibleStrings, notPossibleModules } = calculateMaxStringsForAllGroups(
-        groupedModules,
-        mppt
-      )
+      mppt.mpptMaxU10 = mppt.mpptMaxU * 0.9
+
+      const { possibleStrings, notPossibleModules, toManyModules } =
+        calculateMaxStringsForAllGroups(groupedModules, mppt)
 
       mppt.result = {
         possibleStrings,
-        notPossibleModules
+        notPossibleModules,
+        toManyModules
       }
     })
   })
@@ -407,21 +411,25 @@ function groupByVoc(modules) {
   }, {})
 }
 
+// last
 function calculateMaxStringsForAllGroups(groupedModules, mppt) {
   const possibleStrings = []
   const notPossibleModules = []
+  const toManyModules = []
 
   for (const vocKey in groupedModules) {
     const modules = groupedModules[vocKey]
     const moduleVoc = parseFloat(vocKey)
 
     // Überprüfen, ob die Voc des Moduls außerhalb des MPPT-Bereichs liegt
-    if (moduleVoc > mppt.mpptMaxU || moduleVoc < mppt.mpptMinU) {
+    // mpptMaxU10 = -10%
+    if (moduleVoc > mppt.mpptMaxU10 || moduleVoc < mppt.mpptMinU) {
       notPossibleModules.push(...modules)
       continue
     }
 
-    const maxModulesInString = Math.floor((mppt.mpptMaxU * 0.9) / moduleVoc)
+    // const maxModulesInString = Math.floor((mppt.mpptMaxU * 0.9) / moduleVoc)
+    const maxModulesInString = Math.floor(mppt.mpptMaxU10 / moduleVoc)
 
     if (modules.length === 0) continue
 
@@ -464,6 +472,12 @@ function calculateMaxStringsForAllGroups(groupedModules, mppt) {
         totalPower: secondaryModules[0].pvWp * secondaryModulesCount,
         modules: secondaryModules
       }
+
+      // Überprüfen, ob nach dem Erstellen von 2 Strings noch Module übrig sind
+      const leftoverModules = remainingModules.slice(secondaryModulesCount)
+      if (leftoverModules.length > 0) {
+        toManyModules.push(...leftoverModules)
+      }
     }
 
     // Prüfe, ob die Strings die gleichen Werte haben, aber nur wenn beide existieren
@@ -486,86 +500,12 @@ function calculateMaxStringsForAllGroups(groupedModules, mppt) {
         isSame: isSame
       })
     }
+
+    // console.log('remainingModulesCount', remainingModulesCount)
   }
 
-  return { possibleStrings, notPossibleModules }
+  return { possibleStrings, notPossibleModules, toManyModules }
 }
-
-// function calculateMaxStringsForAllGroups(groupedModules, mppt) {
-//   const possibleStrings = []
-//   const notPossibleModules = []
-
-//   for (const vocKey in groupedModules) {
-//     const modules = groupedModules[vocKey]
-//     const moduleVoc = parseFloat(vocKey)
-
-//     // Überprüfen, ob die Voc des Moduls außerhalb des MPPT-Bereichs liegt
-//     if (moduleVoc > mppt.mpptMaxU || moduleVoc < mppt.mpptMinU) {
-//       notPossibleModules.push(...modules)
-//       continue
-//     }
-
-//     const maxModulesInString = Math.floor((mppt.mpptMaxU * 0.9) / moduleVoc)
-
-//     if (modules.length === 0) continue
-
-//     // Berechne den primären String
-//     const primaryModulesCount = Math.min(maxModulesInString, modules.length)
-//     const primaryModules = modules.slice(0, primaryModulesCount)
-
-//     let primaryString = null
-//     if (primaryModules.length > 0) {
-//       primaryString = {
-//         numberOfModules: primaryModulesCount,
-//         totalVoc: moduleVoc * primaryModulesCount,
-//         totalVmp: primaryModules[0].pvVmp * primaryModulesCount,
-//         totalImp: primaryModules[0].pvImp,
-//         totalPower: primaryModules[0].pvWp * primaryModulesCount,
-//         modules: primaryModules
-//       }
-//     }
-
-//     // Berechne den sekundären String
-//     const remainingModules = modules.slice(primaryModulesCount)
-//     const secondaryModulesCount = Math.min(maxModulesInString, remainingModules.length)
-//     const secondaryModules = remainingModules.slice(0, secondaryModulesCount)
-
-//     let secondaryString = null
-//     if (secondaryModules.length > 0) {
-//       secondaryString = {
-//         numberOfModules: secondaryModulesCount,
-//         totalVoc: moduleVoc * secondaryModulesCount,
-//         totalVmp: secondaryModules[0].pvVmp * secondaryModulesCount,
-//         totalImp: secondaryModules[0].pvImp,
-//         totalPower: secondaryModules[0].pvWp * secondaryModulesCount,
-//         modules: secondaryModules
-//       }
-//     }
-
-//     // Prüfe, ob die Strings die gleichen Werte haben, aber nur wenn beide existieren
-//     let isSame = false
-//     if (primaryString && secondaryString) {
-//       isSame =
-//         primaryString.numberOfModules === secondaryString.numberOfModules &&
-//         primaryString.totalVoc === secondaryString.totalVoc &&
-//         primaryString.totalVmp === secondaryString.totalVmp &&
-//         primaryString.totalImp === secondaryString.totalImp &&
-//         primaryString.totalPower === secondaryString.totalPower
-//     }
-
-//     // Füge das Ergebnis der möglichen Strings hinzu, nur wenn primaryString existiert
-//     if (primaryString) {
-//       possibleStrings.push({
-//         voc: moduleVoc,
-//         primaryString: primaryString,
-//         secondaryString: secondaryString,
-//         isSame: isSame
-//       })
-//     }
-//   }
-
-//   return { possibleStrings, notPossibleModules }
-// }
 
 // allgemein
 function setInUse(key, id, status) {
@@ -607,6 +547,12 @@ function sortData(datakey, key) {
       dataOfPvs.value.sort((a, b) =>
         sortUpDown.value ? a[key].localeCompare(b[key]) : b[key].localeCompare(a[key])
       )
+      break
+    case 'dataOfWrs':
+      dataOfWrs.value.sort((a, b) =>
+        sortUpDown.value ? a[key].localeCompare(b[key]) : b[key].localeCompare(a[key])
+      )
+      break
   }
 
   sortUpDown.value = !sortUpDown.value
@@ -676,14 +622,14 @@ onMounted(() => {
           class="btn btn-outline-secondary btn-sm"
           @click="clearDataInLocalStore"
         >
-          <i class="bi-database-x"></i>
+          <i class="bi bi-database-x"></i>
         </button>
       </div>
     </div>
     <div class="row">
       <div class="col-12">
         <!-- WR -->
-        <div id="formWr" class="card mb-3 shadow">
+        <div id="formWr" class="card mb-4 shadow">
           <div class="card-header font-weight-bold">
             <button
               id="showForm"
@@ -693,15 +639,15 @@ onMounted(() => {
             >
               <i :class="showForm ? 'bi-dash-lg' : 'bi-plus-lg'"></i>
             </button>
-            <h4 class="card-title">
-              <i class="bi-plug"></i> Wechselrichter
+            <h5 class="card-title">
+              <i class="bi bi-plug"></i> Geräte / Wechselrichter
               {{ dataOfWr.wrId === null ? 'anlegen' : 'ändern' }}
-            </h4>
-            <h5 class="card-subtitle mb-2 text-body-secondary">
+            </h5>
+            <h6 class="card-subtitle mb-2 text-body-secondary">
               Hier kannst Du den Wechselrichter mit seinen Daten
               {{ dataOfWr.wrId === null ? 'anlegen' : 'ändern' }}. Du hast bereits
               {{ countOfWrs }} Wechselrichter angelegt.
-            </h5>
+            </h6>
           </div>
 
           <Transition>
@@ -842,9 +788,77 @@ onMounted(() => {
           <!-- Ausgabe WR -->
           <div class="card m-3">
             <div class="card-body">
-              <h6 class="card-title"><i class="bi-plug"></i> Wechselrichter</h6>
+              <h6 class="card-title"><i class="bi bi-plug"></i> Wechselrichter</h6>
+
+              <div class="table-responsive">
+                <table class="table text-center w-100">
+                  <thead>
+                    <tr>
+                      <!-- <th scope="col">#</th> -->
+                      <th scope="col" class="text-start">
+                        Bezeichnung
+                        <i
+                          class="bi bi-arrow-down-up iClick"
+                          @click="sortData('dataOfWrs', 'wrName')"
+                        ></i>
+                      </th>
+
+                      <th scope="col" class="text-start">Kürzel</th>
+                      <th scope="col">min. V</th>
+                      <th scope="col">max. V</th>
+                      <th scope="col">A</th>
+                      <th scope="col">W</th>
+                      <th scope="col">MPPTs</th>
+                      <th scope="col"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <template v-for="dataWr in dataOfWrs" :key="dataWr.wrId">
+                      <tr>
+                        <!-- <td>
+                          {{ dataWr.wrId }}
+                        </td> -->
+                        <td class="text-start">
+                          {{ dataWr.wrName }}
+                        </td>
+                        <td class="text-start">{{ dataWr.wrNameShort }}</td>
+                        <td>{{ dataWr.wrMinU }}</td>
+                        <td>{{ dataWr.wrMaxU }}</td>
+                        <td>{{ dataWr.wrI }}</td>
+                        <td>{{ dataWr.wrP }}</td>
+                        <td>{{ dataWr.mppts.length }}</td>
+                        <td>
+                          <button
+                            type="button"
+                            :class="`btn btn-${dataWr.wrInUse ? 'secondary' : 'danger'}  btn-sm float-end`"
+                            @click="delWr(dataWr.wrId)"
+                            v-bind:disabled="dataWr.wrInUse"
+                          >
+                            <i class="bi bi-trash"></i>
+                          </button>
+
+                          <button
+                            type="button"
+                            :class="`btn btn-warning btn-sm float-end ms-2 me-2`"
+                            @click="editWr(dataWr)"
+                          >
+                            <i class="bi bi-pencil"></i>
+                          </button>
+
+                          <button class="btn btn-success btn-sm float-end" @click="copyWr(dataWr)">
+                            <i class="bi bi-copy"></i>
+                          </button>
+                        </td>
+                      </tr>
+                      <!-- <tr>
+                        <td colspan="8">{{ dataWr.mppts }}</td>
+                      </tr> -->
+                    </template>
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <div class="card m-3" v-for="dataWr in dataOfWrs" :key="dataWr.wrId">
+            <!-- <div class="card m-3" v-for="dataWr in dataOfWrs" :key="dataWr.wrId">
               <div class="card-header">
                 <h6 class="card-title float-start pt-1">
                   {{ dataWr.wrName }} ({{ dataWr.wrNameShort }})
@@ -925,31 +939,32 @@ onMounted(() => {
                   <hr />
                 </div>
               </div>
-            </div>
+            </div> -->
           </div>
         </div>
 
         <!-- PV -->
-        <div id="formPv" class="card mb-3 shadow">
-          <div class="card-header font-weight-bold">
+        <div id="formPv" class="card mb-4 shadow">
+          <div class="card-header">
             <button
               id="showFormPv"
               type="button"
               class="btn btn-outline-secondary btn-sm float-end"
               @click="showFormPv = !showFormPv"
             >
-              <i :class="showFormPv ? 'bi-dash-lg' : 'bi-plus-lg'"></i>
+              <i :class="`bi ${showFormPv ? 'bi-dash-lg' : 'bi-plus-lg'}`"></i>
             </button>
-            <h4 class="card-title">
-              <i class="bi-grid"></i> Solarmodule
+            <h5 class="card-title">
+              <i class="bi bi-grid"></i> Solarmodule
               {{ dataOfPv.pvId === null ? 'anlegen' : 'ändern' }}
-            </h4>
-            <h5 class="card-subtitle mb-2 text-body-secondary">
+            </h5>
+            <h6 class="card-subtitle mb-2 text-body-secondary">
               Hier kannst Du die Solarmodule mit ihren Daten
               {{ dataOfPv.pvId === null ? 'anlegen' : 'ändern' }}. Du hast bereits
               {{ countOfPvs }} Solarpanele angelegt.
-            </h5>
+            </h6>
           </div>
+
           <Transition>
             <div v-show="showFormPv" class="card-body">
               <input type="hidden" id="pvId" v-model="dataOfPv.pvId" />
@@ -1075,7 +1090,7 @@ onMounted(() => {
           <!-- Ausgabe PV -->
           <div class="card m-3">
             <div class="card-body">
-              <h6 class="card-title"><i class="bi-grid"></i> Solarmodule</h6>
+              <h6 class="card-title"><i class="bi bi-grid"></i> Solarmodule</h6>
               <div class="table-responsive">
                 <table class="table text-center">
                   <thead>
@@ -1124,7 +1139,7 @@ onMounted(() => {
                           class="btn btn-success btn-sm float-start me-1"
                           @click="copyPv(dataPv)"
                         >
-                          <i class="bi-copy"></i>
+                          <i class="bi bi-copy"></i>
                         </button>
 
                         <button
@@ -1132,15 +1147,15 @@ onMounted(() => {
                           class="btn btn-warning btn-sm float me-1"
                           @click="getPv(dataPv)"
                         >
-                          <i class="bi-pencil"></i>
+                          <i class="bi bi-pencil"></i>
                         </button>
                         <button
                           type="button"
-                          :class="`btn ${dataPv.pvInUse ? 'btn-secondary' : 'btn-danger'} btn-sm float-end`"
+                          :class="`btn btn-${dataPv.pvInUse ? 'secondary' : 'danger'} btn-sm float-end`"
                           @click="delPv(dataPv.pvId)"
                           v-bind:disabled="dataPv.pvInUse"
                         >
-                          <i class="bi-trash bi-sm"></i>
+                          <i class="bi bi-trash bi-sm"></i>
                         </button>
                       </td>
                     </tr>
@@ -1153,30 +1168,23 @@ onMounted(() => {
 
         <!-- WR und PV zusammenfügen -->
         <div id="formWrPv" class="card mb-3 shadow">
-          <div class="card-header font-weight-bold">
-            <!-- <button
-              type="button"
-              class="btn btn-danger btn-sm float-end ms-1"
-              @click="clearDataInLocalStore('dataOfWrsPvs')"
-            >
-              <i :class="`bi bi-trash${dataOfWrsPvs.length > 0 ? '-fill' : ''}`"></i>
-            </button> -->
+          <div class="card-header">
             <button
               id="showFormWrPv"
               type="button"
               class="btn btn-outline-secondary btn-sm float-end"
               @click="showFormWrPv = !showFormWrPv"
             >
-              <i :class="showFormWrPv ? 'bi-dash-lg' : 'bi-plus-lg'"></i>
+              <i :class="`bi bi-${showFormWrPv ? 'dash-lg' : 'plus-lg'}`"></i>
             </button>
-            <h4 class="card-title">
-              <i class="bi-lightning"></i> Verbindung Solarmodule und Wechselrichter
+            <h5 class="card-title">
+              <i class="bi bi-lightning"></i> Verbindung Wechselrichter (WR) und Solarmodule (PV)
               {{ dataOfWrPv.id === null ? 'anlegen' : 'ändern' }}
-            </h4>
-            <h5 class="card-subtitle mb-2 text-body-secondary">
-              Hier kannst Du die Verbindung der Solarmodule mit dem Wechselrichter
-              {{ dataOfWrPv.id === null ? 'anlegen' : 'ändern' }}.
             </h5>
+            <h6 class="card-subtitle mb-2 text-body-secondary">
+              Hier kannst Du die Verbindung des Wechselrichter mit den Solarmodulen
+              {{ dataOfWrPv.id === null ? 'anlegen' : 'ändern' }}.
+            </h6>
           </div>
 
           <Transition>
@@ -1187,47 +1195,53 @@ onMounted(() => {
                     <div class="col-12"></div>
                   </div>
                   <div class="row">
-                    <div class="col-12">
-                      WR
-                      <select class="form-select form-select-sm" v-model="dataOfWrPv.dataWr">
-                        <option v-for="(mppt, index) in allMpptsOfWrs" :key="index" :value="mppt">
-                          {{ mppt.wrNameShort }} - MPPT ID: {{ mppt.mpptId }} - [min.
-                          {{ mppt.mpptMinU }} V, max. {{ mppt.mpptMaxU }} V, {{ mppt.mpptI }} A,
-                          {{ mppt.mpptP }} Wp]
-                        </option>
-                      </select>
+                    <div class="col-12 col-md-6">
+                      <div class="input-group mb-3">
+                        <span class="input-group-text" id="selectWr">WR</span>
+                        <select class="form-select form-select-sm" v-model="dataOfWrPv.dataWr">
+                          <option v-for="(mppt, index) in allMpptsOfWrs" :key="index" :value="mppt">
+                            {{ mppt.wrNameShort }} - MPPT ID: {{ mppt.mpptId }} - [min.
+                            {{ mppt.mpptMinU }} V, max. {{ mppt.mpptMaxU }} V, {{ mppt.mpptI }} A,
+                            {{ mppt.mpptP }} Wp]
+                          </option>
+                        </select>
+                      </div>
                     </div>
-                  </div>
-                  <div class="row">
-                    <div class="col-12">
-                      PV
-                      <select class="form-select form-select-sm" v-model="dataOfWrPv.dataPv">
-                        <option
-                          v-for="(pv, index) in dataOfPvs"
-                          :key="index"
-                          :value="pv"
-                          :disabled="pv.pvInUse"
-                        >
-                          {{ pv.pvName }} [{{ pv.pvVoc }} V, {{ pv.pvIk }} A, {{ pv.pvWp }} Wp]
-                        </option>
-                      </select>
+
+                    <div class="col-12 col-md-4">
+                      <div class="input-group mb-3">
+                        <span class="input-group-text" id="selectPv">PV</span>
+                        <select class="form-select form-select-sm" v-model="dataOfWrPv.dataPv">
+                          <option
+                            v-for="(pv, index) in dataOfPvs"
+                            :key="index"
+                            :value="pv"
+                            :disabled="pv.pvInUse"
+                          >
+                            {{ pv.pvName }} [{{ pv.pvVoc }} V, {{ pv.pvIk }} A, {{ pv.pvWp }} Wp]
+                          </option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="col-12 col-md-2">
+                      <button
+                        type="button"
+                        class="btn btn-outline-secondary btn-sm float-end"
+                        @click="saveWrPv"
+                        v-bind:disabled="btnSaveWrPv"
+                      >
+                        <i class="bi bi-floppy"></i> SPEICHERN
+                      </button>
                     </div>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  class="btn btn-outline-secondary btn-sm float-end"
-                  @click="saveWrPv"
-                  v-bind:disabled="btnSaveWrPv"
-                >
-                  <i class="bi-floppy"></i> SPEICHERN
-                </button>
               </div>
             </div>
           </Transition>
 
-          <div class="card">
-            <div class="card-body">
+          <!-- <div class="card">
+            <div class="card-body" v-if="dataOfWrsPvs.length >= 1">
               Verbindungen
               <div class="table-responsive">
                 <table class="table text-center">
@@ -1260,37 +1274,55 @@ onMounted(() => {
                 </table>
               </div>
             </div>
-          </div>
+            <div v-else class="card-body">Es sind noch keine Verbindungen angelegt.</div>
+          </div> -->
         </div>
 
         <!-- Rechner -->
-        <div class="card shadow">
-          <div class="card-header font-weight-bold">
-            <h4 class="card-title"><i class="bi-plug"></i> Zusammenfassung</h4>
-            <h5 class="card-subtitle mb-2 text-body-secondary">
+        <div class="card shadow mb-3">
+          <div class="card-header">
+            <h5 class="card-title"><i class="bi bi-plug"></i> Zusammenfassung</h5>
+            <h6 class="card-subtitle mb-2 text-body-secondary">
               Hier siehst Du die Geräte / Wechselrichter, deren MPPTs und die Solarmodule und
               Strings. Gruppen können nicht verbunden werden. Strings werden parallel verbunden.
-            </h5>
+            </h6>
           </div>
           <div class="card-body" v-if="dataCalculator.length > 0">
+            <!-- wr -->
             <div class="row justify-content-center" v-for="wr in dataCalculator" :key="wr.wrId">
               <div class="col-12">
                 <div class="card mb-3">
                   <div class="card-header h5">{{ wr.wrName }}</div>
                   <div class="card-body">
-                    <!-- {{ wr.wrMppts }} MPPTs [min. {{ wr.wrMinU }} V | max. {{ wr.wrMaxU }} V |
-                    {{ wr.wrI }} A | {{ wr.wrP }} W] -->
-                    <!-- </div>
-                </div>
-              </div> -->
-
                     <!-- mppt -->
                     <div class="row">
                       <div :class="col - 12" v-for="(mppt, index) in wr.mppts" :key="mppt.mpptId">
                         <div class="card mb-3">
                           <div class="card-header h6">
-                            MPPT {{ index + 1 }} (ID: {{ mppt.mpptId }})
+                            MPPT {{ index + 1 }} (ID: {{ mppt.mpptId }}) - max.
+                            {{ mppt.mpptMaxU }} V, {{ mppt.mpptI }} A, {{ wr.wrP }} W
                           </div>
+                          <div
+                            class="card-body pb-0"
+                            v-if="mppt.result.possibleStrings.length >= 2"
+                          >
+                            <div
+                              class="alert alert-info d-flex align-items-center mb-0"
+                              role="alert"
+                            >
+                              <i class="bi bi-info-square me-2"></i>
+                              <div>
+                                Es stehen
+                                <strong>{{ mppt.result.possibleStrings.length }} Gruppen</strong>
+                                zur Verfügung, da unterschiedliche Module (Voc/Uoc) für den MPPT
+                                angelegt wurden. Gruppen können <strong>NICHT</strong> miteinander
+                                verbunden werden - nur jeweils <strong>EINE GRUPPE</strong> mit
+                                diesem MPPT verbinden.
+                              </div>
+                            </div>
+                          </div>
+
+                          <!-- mögliche Strings an PV Modulen -->
                           <div
                             class="card-body"
                             v-for="(possibleStringsAsGroup, index) in mppt.result.possibleStrings"
@@ -1298,28 +1330,99 @@ onMounted(() => {
                           >
                             <div class="row">
                               <div class="col-12">
-                                {{ possibleStringsAsGroup.isSame }}
                                 <div class="card">
                                   <div class="card-header">
-                                    Gruppe aller Module mit {{ possibleStringsAsGroup.voc }} Voc/Uoc
+                                    Gruppe bestehend aus allen Modulen mit gleicher Leerlaufspannung
+                                    ({{ possibleStringsAsGroup.voc }} Voc/Uoc)
                                   </div>
                                   <div class="card-body">
                                     <div class="row">
                                       <div class="col-12">
+                                        <!-- alert warnung -->
                                         <div
                                           class="alert alert-warning d-flex align-items-center"
                                           role="alert"
+                                          v-if="
+                                            !possibleStringsAsGroup.isSame &&
+                                            possibleStringsAsGroup.primaryString !== null &&
+                                            possibleStringsAsGroup.secondaryString !== null
+                                          "
                                         >
                                           <i class="bi bi-info-square me-2"></i>
                                           <div>
-                                            Sting 1 und 2 können (noch) nicht parallel verbunden
-                                            werden, da die Anzahl Module (Summe der Voc/Uoc) nicht
-                                            identisch sind.
+                                            <strong
+                                              >String 1 und 2 können (noch) nicht parallel verbunden
+                                              werden</strong
+                                            >, da die Anzahl der Module (Summe der Voc/Uoc) je
+                                            String nicht identisch sind.
+                                            <strong
+                                              >Füge ein weiteres Modul hinzu oder entferne ein
+                                              Modul.</strong
+                                            >
+                                          </div>
+                                        </div>
+                                        <!-- alert success -->
+                                        <div
+                                          class="alert alert-success d-flex align-items-center"
+                                          role="alert"
+                                          v-if="
+                                            !possibleStringsAsGroup.isSame &&
+                                            (possibleStringsAsGroup.primaryString !== null ||
+                                              possibleStringsAsGroup.secondaryString !== null)
+                                          "
+                                        >
+                                          <i class="bi bi-check-square me-2"></i>
+                                          <div>
+                                            <strong
+                                              >String 1
+                                              {{
+                                                possibleStringsAsGroup.secondaryString !== null
+                                                  ? 'oder String 2'
+                                                  : ''
+                                              }}
+                                              kann mit dem MPPT verbunden werden.
+                                            </strong>
+
+                                            Es kann
+                                            {{
+                                              mppt.mpptMaxU10 >
+                                              parseInt(
+                                                possibleStringsAsGroup.primaryString.totalVoc
+                                              ) +
+                                                parseInt(
+                                                  possibleStringsAsGroup.primaryString.totalVoc /
+                                                    possibleStringsAsGroup.primaryString
+                                                      .numberOfModules
+                                                )
+                                                ? 'ein'
+                                                : 'kein'
+                                            }}
+
+                                            weiteres (gleiches) Modul diesem String hinzugefügt
+                                            werden.
+                                          </div>
+                                        </div>
+                                        <!-- alert success -->
+                                        <div
+                                          class="alert alert-success d-flex align-items-center"
+                                          role="alert"
+                                          v-if="possibleStringsAsGroup.isSame"
+                                        >
+                                          <i class="bi bi-check-square me-2"></i>
+                                          <div>
+                                            <strong
+                                              >String 1 und 2 können parallel mit Y Kabel Paar
+                                              verbunden werden.</strong
+                                            >
+                                            Beide Strings können
+                                            <strong>NICHT in Reihe</strong> verbunden werden.
                                           </div>
                                         </div>
                                       </div>
                                     </div>
+
                                     <div class="row">
+                                      <!-- String 1-->
                                       <div
                                         :class="
                                           possibleStringsAsGroup.primaryString !== null &&
@@ -1328,14 +1431,24 @@ onMounted(() => {
                                             : 'col-12 col-md-6'
                                         "
                                       >
-                                        <div class="card">
+                                        <div class="card mb-3">
                                           <div class="card-header">
                                             <i class="bi bi-grid me-2"></i>
-                                            <strong>String 1 (in Reihe)</strong><br />bestehend aus
+                                            <strong
+                                              >String 1
+                                              {{
+                                                possibleStringsAsGroup.primaryString
+                                                  .numberOfModules > 1
+                                                  ? '(Module in Reihe verkabeln)'
+                                                  : possibleStringsAsGroup.secondaryString !== null
+                                                    ? ''
+                                                    : '(Modul direkt anstecken)'
+                                              }}</strong
+                                            ><br />bestehend aus
                                             {{
                                               possibleStringsAsGroup.primaryString.numberOfModules
                                             }}
-                                            Module(n),
+                                            Modul(en),
                                             {{ possibleStringsAsGroup.primaryString.totalVoc }}
                                             Voc/Uoc,
                                             {{ possibleStringsAsGroup.primaryString.totalPower }} Wp
@@ -1353,11 +1466,20 @@ onMounted(() => {
                                               >
                                                 {{ modul.pvName }}, {{ modul.pvVoc }} Voc/Uoc,
                                                 {{ modul.pvWp }} Wp
+                                                <button
+                                                  type="button"
+                                                  class="btn btn-danger btn-sm float-end"
+                                                  @click="delWrPv(modul.idWrsPvs)"
+                                                >
+                                                  <i class="bi bi-trash"></i>
+                                                </button>
                                               </li>
                                             </ul>
                                           </div>
                                         </div>
                                       </div>
+
+                                      <!-- String 2 -->
                                       <div
                                         :class="
                                           possibleStringsAsGroup.primaryString === null &&
@@ -1367,12 +1489,22 @@ onMounted(() => {
                                         "
                                       >
                                         <div
-                                          class="card"
+                                          class="card mb-3"
                                           v-if="possibleStringsAsGroup.secondaryString !== null"
                                         >
                                           <div class="card-header">
                                             <i class="bi bi-grid me-2"></i>
-                                            <strong>String 2 (in Reihe)</strong><br />bestehend aus
+                                            <strong
+                                              >String 2
+                                              {{
+                                                possibleStringsAsGroup.secondaryString
+                                                  .numberOfModules > 1
+                                                  ? '(Module in Reihe verkabeln)'
+                                                  : possibleStringsAsGroup.primaryString !== null
+                                                    ? ''
+                                                    : '(Modul direkt anstecken)'
+                                              }}</strong
+                                            ><br />bestehend aus
                                             {{
                                               possibleStringsAsGroup.secondaryString.numberOfModules
                                             }}
@@ -1395,6 +1527,13 @@ onMounted(() => {
                                               >
                                                 {{ modul.pvName }}, {{ modul.pvVoc }} Voc/Uoc,
                                                 {{ modul.pvWp }} Wp
+                                                <button
+                                                  type="button"
+                                                  class="btn btn-danger btn-sm float-end"
+                                                  @click="delWrPv(modul.idWrsPvs)"
+                                                >
+                                                  <i class="bi bi-trash"></i>
+                                                </button>
                                               </li>
                                             </ul>
                                           </div>
@@ -1407,10 +1546,33 @@ onMounted(() => {
                             </div>
                           </div>
 
-                          <!-- nicht passende module -->
-                          <div class="card-body">
+                          <!-- zu viele Module -->
+                          <div class="card-body" v-if="mppt.result.toManyModules.length >= 1">
                             <ul
-                              class="list-group"
+                              class="list-group mb-3"
+                              v-for="(modul, index) in mppt.result.toManyModules"
+                              :key="index"
+                            >
+                              <li class="list-group-item list-group-item-warning">
+                                Module die zu viel sind, da nur 2 Strings möglich
+                              </li>
+                              <li class="list-group-item">
+                                {{ modul.pvName }}, {{ modul.pvVoc }} Voc/Uoc, {{ modul.pvWp }} Wp
+                                <button
+                                  type="button"
+                                  class="btn btn-danger btn-sm float-end"
+                                  @click="delWrPv(modul.idWrsPvs)"
+                                >
+                                  <i class="bi bi-trash"></i>
+                                </button>
+                              </li>
+                            </ul>
+                          </div>
+
+                          <!-- nicht passende Module -->
+                          <div class="card-body" v-if="mppt.result.notPossibleModules.length >= 1">
+                            <ul
+                              class="list-group mb-3"
                               v-for="(modul, index) in mppt.result.notPossibleModules"
                               :key="index"
                             >
@@ -1418,7 +1580,14 @@ onMounted(() => {
                                 Module die nicht verwendet werden können
                               </li>
                               <li class="list-group-item">
-                                {{ modul.pvName }}
+                                {{ modul.pvName }}, {{ modul.pvVoc }} Voc/Uoc, {{ modul.pvWp }} Wp
+                                <button
+                                  type="button"
+                                  class="btn btn-danger btn-sm float-end"
+                                  @click="delWrPv(modul.idWrsPvs)"
+                                >
+                                  <i class="bi bi-trash"></i>
+                                </button>
                               </li>
                             </ul>
                           </div>
@@ -1439,16 +1608,16 @@ onMounted(() => {
     <div id="footer"></div>
     <!-- DATA WR<br />
     <pre>{{ dataOfWrs }}</pre>
-    <hr />
+    <hr /> -->
+    <!--
     DATA PV<br />
     <pre>{{ dataOfPvs }}</pre>
     <hr />
     Data WR + PV<br />
     <pre>{{ dataOfWrsPvs }}</pre>
-    <hr /> 
-    Data Calc
-    <pre>{{ dataCalculator }}</pre>
-    -->
+    <hr /> -->
+    <!-- Data Calc
+    <pre>{{ dataCalculator }}</pre> -->
   </div>
 </template>
 
@@ -1463,6 +1632,7 @@ onMounted(() => {
   opacity: 0;
 }
 
+.abtn:hover,
 .iClick:hover {
   cursor: pointer;
 }
