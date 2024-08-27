@@ -1,4 +1,5 @@
 <script setup>
+import DefaultDataWrs from '@/components/DefaultDataWrs.vue'
 import { computed, ref, onMounted } from 'vue'
 
 const dataOfWr = ref({
@@ -40,22 +41,22 @@ const btnSave = computed(() => {
   return (
     dataOfWr.value.wrName !== '' &&
     dataOfWr.value.wrNameShort !== '' &&
-    dataOfWr.value.wrMinU > 0 &&
-    dataOfWr.value.wrMaxU > 0 &&
-    dataOfWr.value.wrI > 0 &&
-    dataOfWr.value.wrP > 0 &&
-    dataOfWr.value.wrMppts > 0
+    dataOfWr.value.wrMinU !== null &&
+    dataOfWr.value.wrMaxU !== null &&
+    dataOfWr.value.wrI !== null &&
+    dataOfWr.value.wrP !== null &&
+    dataOfWr.value.wrMppts !== null
   )
 })
 
 const btnSavePv = computed(() => {
   return (
     dataOfPv.value.pvName !== '' &&
-    dataOfPv.value.pvWp > 0 &&
-    dataOfPv.value.pvVmp > 0 &&
-    dataOfPv.value.pvImp > 0 &&
-    dataOfPv.value.pvVoc > 0 &&
-    dataOfPv.value.pvIk > 0
+    dataOfPv.value.pvWp !== null &&
+    dataOfPv.value.pvVmp !== null &&
+    dataOfPv.value.pvImp !== null &&
+    dataOfPv.value.pvVoc !== null &&
+    dataOfPv.value.pvIk !== null
   )
 })
 
@@ -586,6 +587,17 @@ function clearDataInLocalStore(key = '') {
   }
 }
 
+// Funktion, die den Wert vom Event auffängt und speichert
+function setDataOfWr(value) {
+  console.log(value)
+  dataOfWr.value = {
+    ...value,
+    wrId: null,
+    wrInUse: false,
+    mppts: []
+  }
+}
+
 onMounted(() => {
   const storedDataOfWrs = localStorage.getItem('dataOfWrs')
   if (storedDataOfWrs) {
@@ -653,7 +665,12 @@ onMounted(() => {
           <Transition>
             <div v-show="showForm" class="card-body">
               <input type="hidden" id="wrId" v-model="dataOfWr.wrId" />
-              <input type="checkbox" id="checkbox" v-model="dataOfWr.wrInUse" />
+              <input type="checkbox" id="checkbox" v-model="dataOfWr.wrInUse" class="d-none" />
+              <div class="row">
+                <div class="col-12">
+                  <DefaultDataWrs @update:changeWr="setDataOfWr" />
+                </div>
+              </div>
               <div class="row">
                 <div class="col-6">
                   <div class="input-group input-group-sm mb-3">
@@ -690,9 +707,9 @@ onMounted(() => {
                       id="wrMppts"
                       placeholder="z.B. 2"
                       v-model="dataOfWr.wrMppts"
-                      min="1"
+                      min="0"
                     />
-                    <span class="input-group-text" style="width: 40px">Stk.</span>
+                    <span class="input-group-text">Stk.</span>
                   </div>
                 </div>
 
@@ -705,9 +722,9 @@ onMounted(() => {
                       id="wrP"
                       placeholder="z.B. 400"
                       v-model="dataOfWr.wrP"
-                      min="1"
+                      min="0"
                     />
-                    <span class="input-group-text" style="width: 40px">W</span>
+                    <span class="input-group-text">W</span>
                   </div>
                 </div>
 
@@ -720,9 +737,9 @@ onMounted(() => {
                       id="wrMinU"
                       placeholder="z.B. 10"
                       v-model="dataOfWr.wrMinU"
-                      min="1"
+                      min="0"
                     />
-                    <span class="input-group-text" style="width: 40px">V</span>
+                    <span class="input-group-text">V</span>
                   </div>
                 </div>
 
@@ -735,9 +752,9 @@ onMounted(() => {
                       id="wrMaxU"
                       placeholder="z.B. 55"
                       v-model="dataOfWr.wrMaxU"
-                      min="1"
+                      min="0"
                     />
-                    <span class="input-group-text" style="width: 40px">V</span>
+                    <span class="input-group-text">V</span>
                   </div>
                 </div>
 
@@ -750,9 +767,9 @@ onMounted(() => {
                       id="wrI"
                       placeholder="z.B. 10"
                       v-model="dataOfWr.wrI"
-                      min="1"
+                      min="0"
                     />
-                    <span class="input-group-text" style="width: 40px">A</span>
+                    <span class="input-group-text">A</span>
                   </div>
                 </div>
               </div>
@@ -787,14 +804,13 @@ onMounted(() => {
 
           <!-- Ausgabe WR -->
           <div class="card m-3">
-            <div class="card-body">
-              <h6 class="card-title"><i class="bi bi-plug"></i> Wechselrichter</h6>
-
+            <div class="card-header"><i class="bi bi-plug"></i> Wechselrichter</div>
+            <div class="v-card-body" v-if="dataOfWrs.length >= 1">
               <div class="table-responsive">
                 <table class="table text-center w-100">
                   <thead>
                     <tr>
-                      <!-- <th scope="col">#</th> -->
+                      <th scope="col">#</th>
                       <th scope="col" class="text-start">
                         Bezeichnung
                         <i
@@ -815,9 +831,9 @@ onMounted(() => {
                   <tbody>
                     <template v-for="dataWr in dataOfWrs" :key="dataWr.wrId">
                       <tr>
-                        <!-- <td>
+                        <td>
                           {{ dataWr.wrId }}
-                        </td> -->
+                        </td>
                         <td class="text-start">
                           {{ dataWr.wrName }}
                         </td>
@@ -850,96 +866,14 @@ onMounted(() => {
                           </button>
                         </td>
                       </tr>
-                      <!-- <tr>
-                        <td colspan="8">{{ dataWr.mppts }}</td>
-                      </tr> -->
                     </template>
                   </tbody>
                 </table>
               </div>
             </div>
-            <!-- <div class="card m-3" v-for="dataWr in dataOfWrs" :key="dataWr.wrId">
-              <div class="card-header">
-                <h6 class="card-title float-start pt-1">
-                  {{ dataWr.wrName }} ({{ dataWr.wrNameShort }})
-                </h6>
-                <button
-                  :class="`btn ${dataWr.wrInUse ? 'btn-secondary' : 'btn-danger'} btn-sm float-end`"
-                  @click="delWr(dataWr.wrId)"
-                  v-bind:disabled="dataWr.wrInUse"
-                >
-                  <i class="bi-trash bi-sm"></i>
-                </button>
-
-                <button
-                  type="button"
-                  class="btn btn-warning btn-sm float-end ms-1 me-1"
-                  @click="editWr(dataWr)"
-                >
-                  <i class="bi-pencil"></i>
-                </button>
-
-                <button
-                  type="button"
-                  class="btn btn-success btn-sm float-end"
-                  @click="copyWr(dataWr)"
-                >
-                  <i class="bi-copy"></i>
-                </button>
-              </div>
-              <div class="card-body">
-                <div v-for="(dataWrMppt, index) in dataWr.mppts" :key="index">
-                  <div class="card-title">MPPT {{ index + 1 }} (ID: {{ dataWrMppt.mpptId }})</div>
-                  <div class="row">
-                    <div class="col-md-3">
-                      <div class="input-group input-group-sm mb-3">
-                        <span class="input-group-text">min. Eing. U (V)</span>
-                        <input
-                          type="number"
-                          class="form-control"
-                          v-model="dataWrMppt.mpptMinU"
-                          disabled
-                        />
-                      </div>
-                    </div>
-                    <div class="col-md-3">
-                      <div class="input-group input-group-sm mb-3">
-                        <span class="input-group-text">max. Eing. U (V)</span>
-                        <input
-                          type="number"
-                          class="form-control"
-                          v-model="dataWrMppt.mpptMaxU"
-                          disabled
-                        />
-                      </div>
-                    </div>
-                    <div class="col-md-3">
-                      <div class="input-group input-group-sm mb-3">
-                        <span class="input-group-text">max. Eing. I (A)</span>
-                        <input
-                          type="number"
-                          class="form-control"
-                          v-model="dataWrMppt.mpptI"
-                          disabled
-                        />
-                      </div>
-                    </div>
-                    <div class="col-md-3">
-                      <div class="input-group input-group-sm mb-3">
-                        <span class="input-group-text">Eing. P (W)</span>
-                        <input
-                          type="number"
-                          class="form-control"
-                          v-model="dataWrMppt.mpptP"
-                          disabled
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <hr />
-                </div>
-              </div>
-            </div> -->
+            <div class="card-body" v-else>
+              Es sind aktuell keine Geräte / Wechselrichter angelegt.
+            </div>
           </div>
         </div>
 
@@ -982,7 +916,7 @@ onMounted(() => {
                   </div>
                 </div>
 
-                <div class="col-12">
+                <div class="col-12 col-lg-4">
                   <div class="input-group input-group-sm mb-3">
                     <span class="input-group-text">max. Leistung (Pmax)</span>
                     <input
@@ -991,13 +925,13 @@ onMounted(() => {
                       id="pvWp"
                       placeholder="z.B. 405"
                       v-model="dataOfPv.pvWp"
-                      min="1"
+                      min="0"
                     />
-                    <span class="input-group-text" style="width: 40px">Watt</span>
+                    <span class="input-group-text">Watt</span>
                   </div>
                 </div>
 
-                <div class="col-12">
+                <div class="col-12 col-lg-4">
                   <div class="input-group input-group-sm mb-3">
                     <span class="input-group-text">max. Spannung (Vmp)</span>
                     <input
@@ -1006,13 +940,13 @@ onMounted(() => {
                       id="pvVmp"
                       placeholder="z.B. 31.21"
                       v-model="dataOfPv.pvVmp"
-                      min="1"
+                      min="0"
                     />
-                    <span class="input-group-text" style="width: 40px">V</span>
+                    <span class="input-group-text">V</span>
                   </div>
                 </div>
 
-                <div class="col-12">
+                <div class="col-12 col-lg-4">
                   <div class="input-group input-group-sm mb-3">
                     <span class="input-group-text">max. Strom (Imp)</span>
                     <input
@@ -1021,13 +955,13 @@ onMounted(() => {
                       id="pvVmp"
                       placeholder="z.B. 12.98"
                       v-model="dataOfPv.pvImp"
-                      min="1"
+                      min="0"
                     />
-                    <span class="input-group-text" style="width: 40px">A</span>
+                    <span class="input-group-text">A</span>
                   </div>
                 </div>
 
-                <div class="col-12">
+                <div class="col-12 col-lg-6">
                   <div class="input-group input-group-sm mb-3">
                     <span class="input-group-text">Leerlaufspannung (Voc / Uoc)</span>
                     <input
@@ -1036,13 +970,13 @@ onMounted(() => {
                       id="pvVoc"
                       placeholder="z.B. 37.23"
                       v-model="dataOfPv.pvVoc"
-                      min="1"
+                      min="0"
                     />
-                    <span class="input-group-text" style="width: 40px">V</span>
+                    <span class="input-group-text">V</span>
                   </div>
                 </div>
 
-                <div class="col-12">
+                <div class="col-12 col-lg-6">
                   <div class="input-group input-group-sm mb-3">
                     <span class="input-group-text">Kurzschlussstrom (ISC / IK)</span>
                     <input
@@ -1051,12 +985,12 @@ onMounted(() => {
                       id="pvIk"
                       placeholder="z.B. 13.87"
                       v-model="dataOfPv.pvIk"
-                      min="1"
+                      min="0"
                     />
-                    <span class="input-group-text" style="width: 40px">A</span>
+                    <span class="input-group-text">A</span>
                   </div>
                 </div>
-                <input type="checkbox" id="checkbox" v-model="dataOfPv.pvInUse" />
+                <input type="checkbox" id="checkbox" v-model="dataOfPv.pvInUse" class="d-none" />
               </div>
 
               <button
@@ -1089,8 +1023,8 @@ onMounted(() => {
 
           <!-- Ausgabe PV -->
           <div class="card m-3">
-            <div class="card-body">
-              <h6 class="card-title"><i class="bi bi-grid"></i> Solarmodule</h6>
+            <div class="card-header"><i class="bi bi-grid"></i> Solarmodule</div>
+            <div class="card-body" v-if="dataOfPvs.length >= 1">
               <div class="table-responsive">
                 <table class="table text-center">
                   <thead>
@@ -1163,6 +1097,7 @@ onMounted(() => {
                 </table>
               </div>
             </div>
+            <div class="card-body" v-else>Es sind aktuell keine Solarmodule angelegt.</div>
           </div>
         </div>
 
@@ -1239,43 +1174,6 @@ onMounted(() => {
               </div>
             </div>
           </Transition>
-
-          <!-- <div class="card">
-            <div class="card-body" v-if="dataOfWrsPvs.length >= 1">
-              Verbindungen
-              <div class="table-responsive">
-                <table class="table text-center">
-                  <thead>
-                    <tr>
-                      <th scope="col">#</th>
-                      <th scope="col">WR ID</th>
-                      <th scope="col">MPPT ID</th>
-                      <th scope="col">PV ID</th>
-                      <th scope="col"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="item in dataOfWrsPvs" :key="item.id">
-                      <td>{{ item.id }}</td>
-                      <td>{{ item.wrId }}</td>
-                      <td>{{ item.mpptId }}</td>
-                      <td>{{ item.pvId }}</td>
-                      <td>
-                        <button
-                          type="button"
-                          class="btn btn-danger btn-sm"
-                          @click="delWrPv(item.id)"
-                        >
-                          <i class="bi bi-trash"></i>
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <div v-else class="card-body">Es sind noch keine Verbindungen angelegt.</div>
-          </div> -->
         </div>
 
         <!-- Rechner -->
@@ -1296,7 +1194,7 @@ onMounted(() => {
                   <div class="card-body">
                     <!-- mppt -->
                     <div class="row">
-                      <div :class="col - 12" v-for="(mppt, index) in wr.mppts" :key="mppt.mpptId">
+                      <div class="col-12" v-for="(mppt, index) in wr.mppts" :key="mppt.mpptId">
                         <div class="card mb-3">
                           <div class="card-header h6">
                             MPPT {{ index + 1 }} (ID: {{ mppt.mpptId }}) - max.
@@ -1548,15 +1446,17 @@ onMounted(() => {
 
                           <!-- zu viele Module -->
                           <div class="card-body" v-if="mppt.result.toManyModules.length >= 1">
-                            <ul
-                              class="list-group mb-3"
-                              v-for="(modul, index) in mppt.result.toManyModules"
-                              :key="index"
-                            >
+                            <ul class="list-group mb-3">
                               <li class="list-group-item list-group-item-warning">
-                                Module die zu viel sind, da nur 2 Strings möglich
+                                Diese Module können <strong>nicht</strong> verwendet werden, da
+                                aktuell nur 2 String erstellt werden können und diese bereits belegt
+                                sind.
                               </li>
-                              <li class="list-group-item">
+                              <li
+                                class="list-group-item"
+                                v-for="(modul, index) in mppt.result.toManyModules"
+                                :key="index"
+                              >
                                 {{ modul.pvName }}, {{ modul.pvVoc }} Voc/Uoc, {{ modul.pvWp }} Wp
                                 <button
                                   type="button"
@@ -1571,15 +1471,16 @@ onMounted(() => {
 
                           <!-- nicht passende Module -->
                           <div class="card-body" v-if="mppt.result.notPossibleModules.length >= 1">
-                            <ul
-                              class="list-group mb-3"
-                              v-for="(modul, index) in mppt.result.notPossibleModules"
-                              :key="index"
-                            >
+                            <ul class="list-group mb-3">
                               <li class="list-group-item list-group-item-danger">
-                                Module die nicht verwendet werden können
+                                Diese Module können mit diesem MPPT
+                                <strong>nicht</strong> verwendet werden.
                               </li>
-                              <li class="list-group-item">
+                              <li
+                                class="list-group-item"
+                                v-for="(modul, index) in mppt.result.notPossibleModules"
+                                :key="index"
+                              >
                                 {{ modul.pvName }}, {{ modul.pvVoc }} Voc/Uoc, {{ modul.pvWp }} Wp
                                 <button
                                   type="button"
