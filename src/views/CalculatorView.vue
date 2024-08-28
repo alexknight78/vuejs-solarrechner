@@ -589,7 +589,6 @@ function clearDataInLocalStore(key = '') {
 
 // Funktion, die den Wert vom Event auffängt und speichert
 function setDataOfWr(value) {
-  console.log(value)
   dataOfWr.value = {
     ...value,
     wrId: null,

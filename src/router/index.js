@@ -13,6 +13,11 @@ const router = createRouter({
       path: '/calculator',
       name: 'calculator',
       component: () => import('../views/CalculatorView.vue')
+    },
+    {
+      path: '/wr',
+      name: 'wr',
+      component: () => import('../views/WrView.vue')
     }
     // {
     //   path: '/about',

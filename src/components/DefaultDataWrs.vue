@@ -18,13 +18,28 @@ import { defineEmits, ref } from 'vue'
 
 const defaultDataOfWrs = [
   {
+    wrId: null,
+    wrName: '',
+    wrNameShort: '',
+    wrMinU: null,
+    wrMaxU: null,
+    wrI: null,
+    wrP: null,
+    wrMppts: null,
+    wrInUse: false,
+    mppts: []
+  },
+  {
+    wrId: null,
     wrName: 'AEConversion INV500-60',
     wrNameShort: 'INV500-60',
     wrMinU: 22,
     wrMaxU: 60,
     wrI: 9,
     wrP: 500,
-    wrMppts: 1
+    wrMppts: 1,
+    wrInUse: false,
+    mppts: []
   },
   {
     wrName: 'APsystems DS3',
