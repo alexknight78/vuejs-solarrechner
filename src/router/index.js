@@ -10,23 +10,25 @@ const router = createRouter({
       component: HomeView
     },
     {
-      path: '/calculator',
-      name: 'calculator',
-      component: () => import('../views/CalculatorView.vue')
+      path: '/wechselrichter',
+      name: 'wechselrichter',
+      component: () => import('../views/WechselrichterView.vue')
     },
     {
-      path: '/wr',
-      name: 'wr',
-      component: () => import('../views/WrView.vue')
+      path: '/wechselrichter/:id',
+      name: 'wechselrichterid',
+      component: () => import('../views/WechselrichterView.vue')
+    },
+    {
+      path: '/solarmodule',
+      name: 'solarmodule',
+      component: () => import('../views/SolarmoduleView.vue')
+    },
+    {
+      path: '/rechner',
+      name: 'rechner',
+      component: () => import('../views/RechnerView.vue')
     }
-    // {
-    //   path: '/about',
-    //   name: 'about',
-    //   // route level code-splitting
-    //   // this generates a separate chunk (About.[hash].js) for this route
-    //   // which is lazy-loaded when the route is visited.
-    //   component: () => import('../views/AboutView.vue')
-    // }
   ]
 })
 

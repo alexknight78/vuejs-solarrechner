@@ -1,10 +1,10 @@
 <template>
   <div>
     <div class="input-group mb-3">
-      <span class="input-group-text" id="selectDefaultPv">Vordefinierte Solarmodule anlegen</span>
+      <span class="input-group-text" id="selectDefaultPv">Vordefiniertes Solarmodul wählen</span>
       <select v-model="selectPv" @change="handleChange" class="form-select form-select-sm">
         <option v-for="(pv, index) in defaultDataOfPvs" :key="index" :value="pv">
-          {{ pv.wrName }}
+          {{ pv.pvName }}
         </option>
       </select>
     </div>
@@ -16,6 +16,7 @@ import { defineEmits, ref } from 'vue'
 
 const defaultDataOfPvs = [
   {
+    pvId: null,
     pvName: '',
     pvWp: null,
     pvVmp: null,
@@ -25,6 +26,7 @@ const defaultDataOfPvs = [
     pvInUse: false
   },
   {
+    pvId: null,
     pvName: 'Canadian Solar CS3W-400MS',
     pvWp: 400,
     pvVmp: 31.4,
@@ -34,6 +36,7 @@ const defaultDataOfPvs = [
     pvInUse: false
   },
   {
+    pvId: null,
     pvName: 'Canadian Solar CS3W-410MS',
     pvWp: 410,
     pvVmp: 31.5,
@@ -43,6 +46,7 @@ const defaultDataOfPvs = [
     pvInUse: false
   },
   {
+    pvId: null,
     pvName: 'Canadian Solar CS3W-415MS',
     pvWp: 415,
     pvVmp: 31.6,
@@ -52,6 +56,7 @@ const defaultDataOfPvs = [
     pvInUse: false
   },
   {
+    pvId: null,
     pvName: 'Canadian Solar CS3W-420MS',
     pvWp: 420,
     pvVmp: 31.7,
@@ -61,6 +66,7 @@ const defaultDataOfPvs = [
     pvInUse: false
   },
   {
+    pvId: null,
     pvName: 'EcoFlow 60W Portable Solar Panel',
     pvWp: 60,
     pvVmp: 20.4,
@@ -70,6 +76,7 @@ const defaultDataOfPvs = [
     pvInUse: false
   },
   {
+    pvId: null,
     pvName: 'EcoFlow 100W Portable Solar Panel',
     pvWp: 100,
     pvVmp: 18.4,
@@ -79,6 +86,7 @@ const defaultDataOfPvs = [
     pvInUse: false
   },
   {
+    pvId: null,
     pvName: 'EcoFlow 110W Portable Solar Panel',
     pvWp: 110,
     pvVmp: 19.0,
@@ -88,6 +96,7 @@ const defaultDataOfPvs = [
     pvInUse: false
   },
   {
+    pvId: null,
     pvName: 'EcoFlow 220W Portable Solar Panel',
     pvWp: 220,
     pvVmp: 30.3,
@@ -97,6 +106,7 @@ const defaultDataOfPvs = [
     pvInUse: false
   },
   {
+    pvId: null,
     pvName: 'EcoFlow 400W Portable Solar Panel',
     pvWp: 400,
     pvVmp: 37.5,
@@ -106,6 +116,7 @@ const defaultDataOfPvs = [
     pvInUse: false
   },
   {
+    pvId: null,
     pvName: 'EcoFlow 400W Starres Solarpanel',
     pvWp: 400,
     pvVmp: 44.3,
@@ -115,6 +126,7 @@ const defaultDataOfPvs = [
     pvInUse: false
   },
   {
+    pvId: null,
     pvName: 'Ja Solar JAM60S20-375/MR',
     pvWp: 375,
     pvVmp: 34.1,
@@ -124,6 +136,7 @@ const defaultDataOfPvs = [
     pvInUse: false
   },
   {
+    pvId: null,
     pvName: 'Ja Solar JAM60S20-385/MR',
     pvWp: 385,
     pvVmp: 34.5,
@@ -133,6 +146,7 @@ const defaultDataOfPvs = [
     pvInUse: false
   },
   {
+    pvId: null,
     pvName: 'Ja Solar JAM60S20-390/MR',
     pvWp: 390,
     pvVmp: 34.7,
@@ -142,6 +156,7 @@ const defaultDataOfPvs = [
     pvInUse: false
   },
   {
+    pvId: null,
     pvName: 'Ja Solar JAM60S20-395/MR',
     pvWp: 395,
     pvVmp: 34.9,
@@ -151,6 +166,67 @@ const defaultDataOfPvs = [
     pvInUse: false
   },
   {
+    pvId: null,
+    pvName: 'Ja Solar JAM60S20-400/MR',
+    pvWp: 400,
+    pvVmp: 34.6,
+    pvImp: 11.56,
+    pvVoc: 41.5,
+    pvIk: 12.12,
+    pvInUse: false
+  },
+  {
+    pvId: null,
+    pvName: 'Ja Solar JAM60S20-405/MR',
+    pvWp: 405,
+    pvVmp: 34.7,
+    pvImp: 11.67,
+    pvVoc: 41.7,
+    pvIk: 12.25,
+    pvInUse: false
+  },
+  {
+    pvId: null,
+    pvName: 'Ja Solar JAM72S30-415/MR',
+    pvWp: 415,
+    pvVmp: 34.8,
+    pvImp: 11.93,
+    pvVoc: 42.0,
+    pvIk: 12.58,
+    pvInUse: false
+  },
+  {
+    pvId: null,
+    pvName: 'Ja Solar JAM72S30-420/MR',
+    pvWp: 420,
+    pvVmp: 34.9,
+    pvImp: 12.04,
+    pvVoc: 42.2,
+    pvIk: 12.72,
+    pvInUse: false
+  },
+  {
+    pvId: null,
+    pvName: 'Ja Solar JAM72S30-440/MR',
+    pvWp: 440,
+    pvVmp: 35.1,
+    pvImp: 12.53,
+    pvVoc: 42.5,
+    pvIk: 13.24,
+    pvInUse: false
+  },
+  {
+    pvId: null,
+    pvName: 'Ja Solar JAM72S30-450/MR',
+    pvWp: 450,
+    pvVmp: 35.3,
+    pvImp: 12.74,
+    pvVoc: 42.8,
+    pvIk: 13.45,
+    pvInUse: false
+  },
+  {
+    pvId: null,
     pvName: 'Trina Solar TSM-DE09.08(II) 395W',
     pvWp: 395,
     pvVmp: 34.2,
@@ -160,6 +236,7 @@ const defaultDataOfPvs = [
     pvInUse: false
   },
   {
+    pvId: null,
     pvName: 'Trina Solar TSM-DE09.08(II) 400W',
     pvWp: 400,
     pvVmp: 34.3,
@@ -169,6 +246,7 @@ const defaultDataOfPvs = [
     pvInUse: false
   },
   {
+    pvId: null,
     pvName: 'Trina Solar TSM-DE09.08(II) 405W',
     pvWp: 405,
     pvVmp: 34.4,
@@ -178,6 +256,7 @@ const defaultDataOfPvs = [
     pvInUse: false
   },
   {
+    pvId: null,
     pvName: 'Trina Solar TSM-DE09.08(II) 410W',
     pvWp: 410,
     pvVmp: 34.5,
@@ -187,6 +266,7 @@ const defaultDataOfPvs = [
     pvInUse: false
   },
   {
+    pvId: null,
     pvName: 'Trina Solar TSM-DE09.08(II) 435W',
     pvWp: 435,
     pvVmp: 41.0,
@@ -196,6 +276,7 @@ const defaultDataOfPvs = [
     pvInUse: false
   },
   {
+    pvId: null,
     pvName: 'Trina Solar TSM-DE09.08(II) 440W',
     pvWp: 440,
     pvVmp: 41.2,
@@ -205,6 +286,7 @@ const defaultDataOfPvs = [
     pvInUse: false
   },
   {
+    pvId: null,
     pvName: 'Trina Solar TSM-DE09.08(II) 450W',
     pvWp: 450,
     pvVmp: 41.6,

@@ -1,8 +1,8 @@
 <template>
   <div>
-    <div class="input-group mb-3">
-      <span class="input-group-text" id="selectDefaultWr"
-        >Vordefinierten Wechselrichter anlegen</span
+    <div class="input-group input-group-sm mb-3">
+      <span class="input-group-text col-12 col-sm-6 col-lg-4" id="selectDefaultWr"
+        >Vordefinierte Wechselrichter</span
       >
       <select v-model="selectWr" @change="handleChange" class="form-select form-select-sm">
         <option v-for="(wr, index) in defaultDataOfWrs" :key="index" :value="wr">
@@ -13,10 +13,12 @@
   </div>
 </template>
 
-<script setup>
+<script lang="ts" setup>
 import { defineEmits, ref } from 'vue'
 
-const defaultDataOfWrs = [
+import { DataWr } from '../types/dataWr'
+
+const defaultDataOfWrs: DataWr[] = [
   {
     wrId: null,
     wrName: '',
@@ -42,13 +44,16 @@ const defaultDataOfWrs = [
     mppts: []
   },
   {
+    wrId: null,
     wrName: 'APsystems DS3',
     wrNameShort: 'DS3',
     wrMinU: 16,
     wrMaxU: 60,
     wrI: 12.5,
     wrP: 960,
-    wrMppts: 2
+    wrMppts: 2,
+    wrInUse: false,
+    mppts: []
   },
   {
     wrName: 'APsystems YC600',
@@ -57,7 +62,9 @@ const defaultDataOfWrs = [
     wrMaxU: 55,
     wrI: 12,
     wrP: 600,
-    wrMppts: 2
+    wrMppts: 2,
+    wrInUse: false,
+    mppts: []
   },
   {
     wrName: 'APsystems YC1000',
@@ -66,7 +73,9 @@ const defaultDataOfWrs = [
     wrMaxU: 55,
     wrI: 25,
     wrP: 1000,
-    wrMppts: 4
+    wrMppts: 4,
+    wrInUse: false,
+    mppts: []
   },
   {
     wrName: 'Deye SUN1200G3',
@@ -75,7 +84,9 @@ const defaultDataOfWrs = [
     wrMaxU: 60,
     wrI: 20,
     wrP: 1200,
-    wrMppts: 2
+    wrMppts: 2,
+    wrInUse: false,
+    mppts: []
   },
   {
     wrName: 'Deye SUN1600G3',
@@ -84,7 +95,9 @@ const defaultDataOfWrs = [
     wrMaxU: 60,
     wrI: 26.6,
     wrP: 1600,
-    wrMppts: 2
+    wrMppts: 2,
+    wrInUse: false,
+    mppts: []
   },
   {
     wrName: 'Deye SUN600G3',
@@ -93,7 +106,9 @@ const defaultDataOfWrs = [
     wrMaxU: 60,
     wrI: 10,
     wrP: 600,
-    wrMppts: 2
+    wrMppts: 2,
+    wrInUse: false,
+    mppts: []
   },
   {
     wrName: 'Deye SUN800G3',
@@ -102,7 +117,9 @@ const defaultDataOfWrs = [
     wrMaxU: 60,
     wrI: 13.3,
     wrP: 800,
-    wrMppts: 2
+    wrMppts: 2,
+    wrInUse: false,
+    mppts: []
   },
   {
     wrName: 'Ecoflow Powerstream',
@@ -111,7 +128,9 @@ const defaultDataOfWrs = [
     wrMaxU: 55,
     wrI: 13.0,
     wrP: 400,
-    wrMppts: 2
+    wrMppts: 2,
+    wrInUse: false,
+    mppts: []
   },
   {
     wrName: 'Envertech EVT560',
@@ -120,7 +139,9 @@ const defaultDataOfWrs = [
     wrMaxU: 50,
     wrI: 12.8,
     wrP: 560,
-    wrMppts: 1
+    wrMppts: 1,
+    wrInUse: false,
+    mppts: []
   },
   {
     wrName: 'Envertech EVT800',
@@ -129,7 +150,9 @@ const defaultDataOfWrs = [
     wrMaxU: 50,
     wrI: 18.2,
     wrP: 800,
-    wrMppts: 1
+    wrMppts: 1,
+    wrInUse: false,
+    mppts: []
   },
   {
     wrName: 'Hoymiles HM-1200',
@@ -138,7 +161,9 @@ const defaultDataOfWrs = [
     wrMaxU: 60,
     wrI: 24,
     wrP: 1200,
-    wrMppts: 2
+    wrMppts: 2,
+    wrInUse: false,
+    mppts: []
   },
   {
     wrName: 'Hoymiles HM-1600',
@@ -147,7 +172,9 @@ const defaultDataOfWrs = [
     wrMaxU: 60,
     wrI: 32,
     wrP: 1600,
-    wrMppts: 4
+    wrMppts: 4,
+    wrInUse: false,
+    mppts: []
   },
   {
     wrName: 'Hoymiles HM-600',
@@ -156,7 +183,9 @@ const defaultDataOfWrs = [
     wrMaxU: 60,
     wrI: 11.6,
     wrP: 600,
-    wrMppts: 2
+    wrMppts: 2,
+    wrInUse: false,
+    mppts: []
   },
   {
     wrName: 'Hoymiles HM-800',
@@ -165,7 +194,9 @@ const defaultDataOfWrs = [
     wrMaxU: 60,
     wrI: 16,
     wrP: 800,
-    wrMppts: 2
+    wrMppts: 2,
+    wrInUse: false,
+    mppts: []
   },
   {
     wrName: 'SMA Sunny Boy 300',
@@ -174,7 +205,9 @@ const defaultDataOfWrs = [
     wrMaxU: 100,
     wrI: 5.5,
     wrP: 300,
-    wrMppts: 1
+    wrMppts: 1,
+    wrInUse: false,
+    mppts: []
   }
 ]
 
